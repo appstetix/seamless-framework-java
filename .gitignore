@@ -66,4 +66,4 @@ Temporary Items
 hs_err_pid*
 ### Java template
 .idea
-seamless.iml
+*.iml
