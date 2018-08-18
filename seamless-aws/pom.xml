@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <groupId>com.appstetix.appstract</groupId>
+        <artifactId>seamless</artifactId>
+        <version>1.0</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>seamless-aws</artifactId>
+    <version>${project.parent.version}</version>
+
+    <properties>
+        <amazon.aws.lambda.core.version>1.1.0</amazon.aws.lambda.core.version>
+        <amazon.aws.lambda.logging.version>1.0.0</amazon.aws.lambda.logging.version>
+    </properties>
+
+    <dependencies>
+        <!-- APPSTRACT SEAMLESS CORE -->
+        <dependency>
+            <groupId>com.appstetix.appstract</groupId>
+            <artifactId>seamless-core</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <!-- AWS LAMBDA LIBRARIES -->
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-lambda-java-core</artifactId>
+            <version>${amazon.aws.lambda.core.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-lambda-java-log4j</artifactId>
+            <version>${amazon.aws.lambda.logging.version}</version>
+        </dependency>
+    </dependencies>
+
+</project>

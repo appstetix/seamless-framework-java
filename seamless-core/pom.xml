@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>seamless</artifactId>
+        <groupId>com.appstetix.appstract</groupId>
+        <version>1.0</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>seamless-core</artifactId>
+    <version>${parent.version}</version>
+
+    <properties>
+        <!--<maven.deploy.skip>true</maven.deploy.skip>-->
+        <!--<jar.skipIfEmpty>true</jar.skipIfEmpty>-->
+        <!--<maven.install.skip>true</maven.install.skip>-->
+        <vertx.version>3.5.3</vertx.version>
+        <appstetix.toolbelt.locksmyth.version>3.0</appstetix.toolbelt.locksmyth.version>
+    </properties>
+
+    <dependencies>
+        <!-- VERTX LIBRARIES -->
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-core</artifactId>
+            <version>${vertx.version}</version>
+        </dependency>
+        <!-- APPSTETIX LIBRARIES -->
+        <dependency>
+            <groupId>com.appstetix.toolbelt</groupId>
+            <artifactId>keymaker</artifactId>
+            <version>${appstetix.toolbelt.locksmyth.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.appstetix.toolbelt</groupId>
+            <artifactId>keyverifier</artifactId>
+            <version>${appstetix.toolbelt.locksmyth.version}</version>
+        </dependency>
+    </dependencies>
+
+</project>
