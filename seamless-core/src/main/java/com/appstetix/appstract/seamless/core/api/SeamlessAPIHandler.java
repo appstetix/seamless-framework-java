@@ -145,6 +145,13 @@ public abstract class SeamlessAPIHandler extends AbstractVerticle {
         message.reply(Json.encode(response));
     }
 
+    protected void badRequestResponse(Message message, Object payload) {
+        final SeamlessResponse response = new SeamlessResponse();
+        response.setCode(BAD_REQUEST_ERROR_RESPONSE_CODE);
+        response.setPayload(payload);
+        message.reply(Json.encode(response));
+    }
+
     protected void unauthorizedRequestResponse(Message message, String error) {
         final SeamlessResponse response = new SeamlessResponse();
         response.setCode(UNAUTHORIZED_ERROR_RESPONSE_CODE);
@@ -152,10 +159,24 @@ public abstract class SeamlessAPIHandler extends AbstractVerticle {
         message.reply(Json.encode(response));
     }
 
+    protected void unauthorizedRequestResponse(Message message, Object payload) {
+        final SeamlessResponse response = new SeamlessResponse();
+        response.setCode(UNAUTHORIZED_ERROR_RESPONSE_CODE);
+        response.setPayload(payload);
+        message.reply(Json.encode(response));
+    }
+
     protected void conflictResponse(Message message, String error) {
         final SeamlessResponse response = new SeamlessResponse();
         response.setCode(CONFLICT_ERROR_RESPONSE_CODE);
         response.setErrorMessage(StringUtils.isNotEmpty(error) ? error : DEFAULT_CONFLICT_ERROR_MESSAGE);
+        message.reply(Json.encode(response));
+    }
+
+    protected void conflictResponse(Message message, Object payload) {
+        final SeamlessResponse response = new SeamlessResponse();
+        response.setCode(CONFLICT_ERROR_RESPONSE_CODE);
+        response.setPayload(payload);
         message.reply(Json.encode(response));
     }
 

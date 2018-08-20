@@ -57,10 +57,7 @@ public abstract class SeamlessAWS extends SeamlessAPILayer<Map<String, Object>, 
 
         final Map queryStringParameters = (Map) input.get("queryStringParameters");
         queryStringParameters.forEach((key, vals) -> {
-            String property = (String) key;
-            List<String> values = (List<String>) vals;
-
-            request.addParameter(property, values.get(0));
+            request.addParameter((String) key, vals);
         });
 
         request.setHeaders((Map<String, String>) input.get("headers"));
@@ -74,7 +71,7 @@ public abstract class SeamlessAWS extends SeamlessAPILayer<Map<String, Object>, 
         return ApiGatewayResponse.builder()
                 .setStatusCode(response.getCode())
                 .setHeaders(response.getHeaders())
-                .setObjectBody(response.isSuccessful() ? response.getPayload() : response.getErrorMessage())
+                .setObjectBody(response.hasPayload() ? response.getPayload() : response.getErrorMessage())
                 .build();
     }
 

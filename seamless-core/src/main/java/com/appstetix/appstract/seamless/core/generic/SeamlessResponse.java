@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -52,6 +53,10 @@ public class SeamlessResponse {
 
     public boolean isError() {
         return code >= 300 && code < 600;
+    }
+
+    public boolean hasErrorMessage() {
+        return StringUtils.isNotEmpty(this.errorMessage);
     }
 
     public boolean hasHeaders() {

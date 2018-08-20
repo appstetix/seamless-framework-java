@@ -1,10 +1,14 @@
 package com.appstetix.appstract.seamless.core.generic;
 
+import com.appstetix.appstract.seamless.core.exception.IllegalParameterFormatException;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 
+import java.lang.reflect.Array;
 import java.util.HashMap;
+import java.util.IllegalFormatConversionException;
+import java.util.IllegalFormatException;
 import java.util.Map;
 
 @Data
@@ -16,7 +20,7 @@ public class SeamlessRequest {
 
     private String path;
     private Map<String, String> headers;
-    private Map<String, String> parameters;
+    private Map<String, Object> parameters;
     private UserContext userContext;
     private String method;
     private String body;
@@ -29,11 +33,25 @@ public class SeamlessRequest {
         return String.format(REQUEST_PATH_PATTERN, method.trim().toUpperCase(), path.trim()).trim();
     }
 
-    public void addParameter(String key, String value) {
+    public void addParameter(String key, Object value) {
         if(this.parameters == null) {
             this.parameters = new HashMap();
         }
-        this.parameters.put(key, value);
+        if(hasParameter(key)) {
+            final Object parameter = getParameter(key);
+            if(parameter instanceof String[]) {
+                String[] array = (String[]) parameter;
+                array[array.length] = (String) value;
+                this.parameters.replace(key, array);
+            } else {
+                String[] array = new String[]{};
+                array[0] = String.valueOf(parameter);
+                array[0] = String.valueOf(value);
+                this.parameters.put(key, array);
+            }
+        } else {
+            this.parameters.put(key, value);
+        }
     }
 
     public boolean hasParameter(String key) {
@@ -43,39 +61,121 @@ public class SeamlessRequest {
         return false;
     }
 
-    public String getParameter(String key) {
+    public Object getParameter(String key) {
         if(this.parameters != null) {
             return this.parameters.get(key);
         }
         return null;
     }
 
-    public Integer getParameterAsInteger(String key) {
-        if(this.hasParameter(key)) {
-            return Integer.parseInt(this.parameters.get(key));
+    public String getParameterAsString(String key) {
+        return getParameterAsString(key, null);
+    }
+
+    public String getParameterAsString(String key, String def) {
+        if(this.parameters != null) {
+            return String.valueOf(this.parameters.get(key));
         }
-        return null;
+        return def;
+    }
+
+    public Integer getParameterAsInteger(String key) {
+        return getParameterAsInteger(key, null);
+    }
+
+    public Integer getParameterAsInteger(String key, Integer def) throws IllegalParameterFormatException {
+        Object value = null;
+        try {
+            if(this.hasParameter(key)) {
+                value = this.parameters.get(key);
+                if(value instanceof Array) {
+                    String[] arr = (String[]) value;
+                    value = arr[arr.length - 1];
+                }
+                return Integer.parseInt(String.valueOf(value));
+            }
+            return def;
+        } catch (RuntimeException ex) {
+            throw new IllegalParameterFormatException(key, "Integer", value);
+        }
     }
 
     public Boolean getParameterAsBoolean(String key) {
-        if(this.hasParameter(key)) {
-            return Boolean.parseBoolean(this.parameters.get(key));
+        return getParameterAsBoolean(key, null);
+    }
+
+    public Boolean getParameterAsBoolean(String key, Boolean def) throws IllegalParameterFormatException {
+        Object value = null;
+        try {
+            if(this.hasParameter(key)) {
+                value = this.parameters.get(key);
+                if(value instanceof Array) {
+                    String[] arr = (String[]) value;
+                    value = arr[arr.length - 1];
+                }
+                return Boolean.parseBoolean(String.valueOf(value));
+            }
+            return def;
+        } catch (RuntimeException ex) {
+            throw new IllegalParameterFormatException(key, "Boolean", value);
         }
-        return null;
     }
 
     public Long getParameterAsLong(String key) {
-        if(this.hasParameter(key)) {
-            return Long.parseLong(this.parameters.get(key));
+        return getParameterAsLong(key, null);
+    }
+
+    public Long getParameterAsLong(String key, Long def) throws IllegalParameterFormatException {
+        Object value = null;
+        try {
+            if(this.hasParameter(key)) {
+                value = this.parameters.get(key);
+                if(value instanceof Array) {
+                    String[] arr = (String[]) value;
+                    value = arr[arr.length - 1];
+                }
+                return Long.parseLong(String.valueOf(value));
+            }
+            return def;
+        } catch (RuntimeException ex) {
+            throw new IllegalParameterFormatException(key, "Long", value);
         }
-        return null;
     }
 
     public Double getParameterAsDouble(String key) {
-        if(this.hasParameter(key)) {
-            return Double.parseDouble(this.parameters.get(key));
+        return getParameterAsDouble(key, null);
+    }
+
+    public Double getParameterAsDouble(String key, Double def) throws IllegalParameterFormatException {
+        Object value = null;
+        try {
+            if(this.hasParameter(key)) {
+                value = this.parameters.get(key);
+                if(value instanceof Array) {
+                    String[] arr = (String[]) value;
+                    value = arr[arr.length - 1];
+                }
+                return Double.parseDouble(String.valueOf(value));
+            }
+            return def;
+        } catch (RuntimeException ex) {
+            throw new IllegalParameterFormatException(key, "Double", value);
         }
-        return null;
+    }
+
+    public String[] getParameterAsArray(String key) {
+        return getParameterAsArray(key, null);
+    }
+
+    public String[] getParameterAsArray(String key, String[] def) {
+        if(this.hasParameter(key)) {
+            final Object value = this.getParameter(key);
+            if(value instanceof Array) {
+                return (String[]) value;
+            }
+            return new String[]{String.valueOf(value)};
+        }
+        return def;
     }
 
     public boolean hasHeader(String key) {
@@ -92,11 +192,11 @@ public class SeamlessRequest {
         return null;
     }
 
-    public Integer getHeaderAsInteger(String key) {
+    public Integer getHeaderAsInteger(String key, int def) {
         if(hasHeader(key)) {
             return Integer.parseInt(this.headers.get(key));
         }
-        return null;
+        return def;
     }
 
     public String getUserProfileId() {

@@ -84,8 +84,12 @@ public abstract class SeamlessAPILayer<REQ, RESP> implements SeamlessProvider<RE
         return new TokenValidator[]{webValidator, mobileValidator, desktopValidator};
     }
 
-    protected boolean isPreFlightRequest(String requestPath) {
-        return requestPath.toUpperCase().startsWith("OPTIONS");
+    protected static void launch(String verticle) {
+        launch(verticle, options);
+    }
+
+    protected static void launch(String verticle, DeploymentOptions options) {
+        vertx.deployVerticle(verticle, options);
     }
 
 }

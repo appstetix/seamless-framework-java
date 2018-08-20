@@ -44,8 +44,13 @@ public class SeamlessWeb extends SeamlessAPILayer<RoutingContext, HttpServerResp
         context.request().headers().forEach(entry -> {
             headers.put(entry.getKey(), entry.getValue());
         });
+        String ipAddress = context.request().getHeader("X-FORWARDED-FOR");
+        if (ipAddress == null) {
+            ipAddress = context.request().remoteAddress().host();
+        }
+        headers.put("X-FORWARDED-FOR", ipAddress);
 
-        Map<String, String> parameters = new HashMap<>();
+        Map<String, Object> parameters = new HashMap<>();
         context.request().params().forEach(entry -> {
             parameters.put(entry.getKey(), entry.getValue());
         });
@@ -78,10 +83,12 @@ public class SeamlessWeb extends SeamlessAPILayer<RoutingContext, HttpServerResp
                         httpServerResponse.putHeader(s, s2);
                     });
                 }
-                if(response.isSuccessful()) {
+                if(response.hasPayload()) {
                     httpServerResponse.end(Json.encode(response.getPayload()));
-                } else {
+                } else if(response.hasErrorMessage()) {
                     httpServerResponse.end(Json.encode(response.getErrorMessage()));
+                } else {
+                    httpServerResponse.end();
                 }
             }
         });
