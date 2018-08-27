@@ -20,6 +20,7 @@ public class SeamlessResponse {
     public static final String APPLICATION_JSON = "application/json";
     public static final String TEXT_HTML = "text/html";
     public static final String TEXT_PLAIN = "text/plain";
+    public static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
 
     private int code;
     private Map<String, String> headers;
@@ -40,7 +41,7 @@ public class SeamlessResponse {
         this.code = code;
         this.headers = headers;
         this.payload = payload;
-        setContentType();
+        determineContentType();
     }
 
     public SeamlessResponse(String errorMessage) {
@@ -65,7 +66,14 @@ public class SeamlessResponse {
 
     public void setHeaders(Map<String, String> headers) {
         this.headers = headers;
-        setContentType();
+        determineContentType();
+    }
+
+    public String getHeader(String key) {
+        if(hasHeaders() && StringUtils.isNotEmpty(key)) {
+            return this.headers.get(key);
+        }
+        return null;
     }
 
     public boolean hasPayload() {
@@ -74,28 +82,32 @@ public class SeamlessResponse {
 
     public void setPayload(Object data) {
         this.payload = data;
-        setContentType();
+        determineContentType();
     }
 
     public String getContentType() {
-        if(hasPayload()) {
-            if (payload instanceof String) {
-                if(((String)payload).startsWith("<")) {
-                    return SeamlessResponse.TEXT_HTML;
-                }
-            } else {
-                return SeamlessResponse.APPLICATION_JSON;
-            }
-        }
-        return TEXT_PLAIN;
+        return getHeader(CONTENT_TYPE_HEADER);
     }
 
-    protected void setContentType() {
+    protected void determineContentType() {
         if(!hasHeaders()) {
             this.headers = new HashMap();
-            this.headers.put(CONTENT_TYPE_HEADER, getContentType());
-        } else if(!this.headers.containsKey(CONTENT_TYPE_HEADER)) {
-            this.headers.put(CONTENT_TYPE_HEADER, getContentType());
         }
+        if(!this.headers.containsKey(CONTENT_TYPE_HEADER)) {
+            if(hasPayload()) {
+                if (payload instanceof String) {
+                    if(((String)payload).startsWith("<")) {
+                        this.headers.put(CONTENT_TYPE_HEADER, TEXT_HTML);
+                    }
+                } else if(payload instanceof byte[]) {
+                    this.headers.put(CONTENT_TYPE_HEADER, APPLICATION_OCTET_STREAM);
+                } else {
+                    this.headers.put(CONTENT_TYPE_HEADER, APPLICATION_JSON);
+                }
+            } else {
+                this.headers.put(CONTENT_TYPE_HEADER, TEXT_PLAIN);
+            }
+        }
+
     }
 }

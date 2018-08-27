@@ -6,13 +6,18 @@ import com.appstetix.appstract.seamless.core.generic.SeamlessResponse;
 import com.appstetix.appstract.seamless.core.generic.UserContext;
 import com.appstetix.toolbelt.locksmyth.keycore.exception.InvalidTokenException;
 import io.vertx.core.Handler;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import static com.appstetix.appstract.seamless.core.generic.SeamlessResponse.*;
 
 @Slf4j
 public class SeamlessWeb extends SeamlessAPILayer<RoutingContext, HttpServerResponse> implements Handler<RoutingContext> {
@@ -84,7 +89,14 @@ public class SeamlessWeb extends SeamlessAPILayer<RoutingContext, HttpServerResp
                     });
                 }
                 if(response.hasPayload()) {
-                    httpServerResponse.end(Json.encode(response.getPayload()));
+                    if(TEXT_PLAIN.equals(response.getContentType()) || TEXT_HTML.equals(response.getContentType())) {
+                        httpServerResponse.end((String) response.getPayload());
+                    } else if(APPLICATION_OCTET_STREAM.equals(response.getContentType())) {
+                        byte[] bytes = Base64.decodeBase64((String) response.getPayload());
+                        httpServerResponse.end(Buffer.buffer(bytes));
+                    } else {
+                        httpServerResponse.end(Json.encode(response.getPayload()));
+                    }
                 } else if(response.hasErrorMessage()) {
                     httpServerResponse.end(Json.encode(response.getErrorMessage()));
                 } else {
