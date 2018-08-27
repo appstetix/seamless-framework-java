@@ -7,6 +7,7 @@ import com.appstetix.appstract.seamless.core.generic.SeamlessResponse;
 import com.appstetix.appstract.seamless.core.generic.UserContext;
 import com.appstetix.toolbelt.locksmyth.keycore.exception.InvalidTokenException;
 import io.vertx.core.json.Json;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.BasicConfigurator;
 
 import java.util.HashMap;
@@ -14,6 +15,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+
+import static com.appstetix.appstract.seamless.core.generic.SeamlessResponse.*;
 
 public abstract class SeamlessAWS extends SeamlessAPILayer<Map<String, Object>, ApiGatewayResponse> implements RequestHandler<Map<String, Object>, ApiGatewayResponse> {
 
@@ -68,16 +71,36 @@ public abstract class SeamlessAWS extends SeamlessAPILayer<Map<String, Object>, 
     }
 
     public ApiGatewayResponse convertResponse(SeamlessResponse response) {
-        return ApiGatewayResponse.builder()
-                .setStatusCode(response.getCode())
-                .setHeaders(response.getHeaders())
-                .setObjectBody(response.hasPayload() ? response.getPayload() : response.getErrorMessage())
-                .build();
+
+        switch (response.getContentType()) {
+            case APPLICATION_JSON : {
+                return ApiGatewayResponse.builder()
+                        .setStatusCode(response.getCode())
+                        .setHeaders(response.getHeaders())
+                        .setObjectBody(response.hasPayload() ? response.getPayload() : null)
+                        .build();
+            }
+            case APPLICATION_OCTET_STREAM : {
+                return ApiGatewayResponse.builder()
+                        .setStatusCode(response.getCode())
+                        .setHeaders(response.getHeaders())
+                        .setBinaryBody(Base64.decodeBase64((String) response.getPayload()))
+                        .build();
+            }
+            default : {
+                return ApiGatewayResponse.builder()
+                        .setStatusCode(response.getCode())
+                        .setHeaders(response.getHeaders())
+                        .setRawBody(response.hasPayload() ? (String) response.getPayload() : null)
+                        .build();
+
+            }
+        }
     }
 
     private ApiGatewayResponse sendUnauthorizedResponse(InvalidTokenException ex) {
         Map<String, String> headers = new HashMap();
-        headers.put("Content-Type", SeamlessResponse.TEXT_PLAIN);
+        headers.put("Content-Type", TEXT_PLAIN);
         return ApiGatewayResponse.builder()
                 .setHeaders(headers)
                 .setStatusCode(UNAUTHORIZED_STATUS_CODE)
