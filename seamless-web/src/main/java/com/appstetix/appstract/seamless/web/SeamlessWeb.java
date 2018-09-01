@@ -1,6 +1,7 @@
 package com.appstetix.appstract.seamless.web;
 
 import com.appstetix.appstract.seamless.core.api.SeamlessAPILayer;
+import com.appstetix.appstract.seamless.core.generic.HttpHeaders;
 import com.appstetix.appstract.seamless.core.generic.SeamlessRequest;
 import com.appstetix.appstract.seamless.core.generic.SeamlessResponse;
 import com.appstetix.appstract.seamless.core.generic.UserContext;
@@ -17,6 +18,8 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.*;
+import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.SERVER_ERROR_RESPONSE_CODE;
 import static com.appstetix.appstract.seamless.core.generic.SeamlessResponse.*;
 
 @Slf4j
@@ -33,11 +36,11 @@ public class SeamlessWeb extends SeamlessAPILayer<RoutingContext, HttpServerResp
                 process(context, request);
             } catch (InvalidTokenException ex) {
                 ex.printStackTrace();
-                context.response().setStatusCode(UNAUTHORIZED_STATUS_CODE).end("Unable to identify user");
+                context.response().setStatusCode(UNAUTHORIZED_ERROR_RESPONSE_CODE).end("Unable to identify user");
             }
         } catch (Exception e) {
             e.printStackTrace();
-            context.response().setStatusCode(SERVER_ERROR_STATUS_CODE).end("Internal Server Error");
+            context.response().setStatusCode(SERVER_ERROR_RESPONSE_CODE).end("Internal Server Error");
         }
     }
 
@@ -79,7 +82,7 @@ public class SeamlessWeb extends SeamlessAPILayer<RoutingContext, HttpServerResp
         vertx.eventBus().send(request.getRequestPath(), Json.encode(request), rs -> {
             if(rs.failed()) {
                 log.error("Request id = " + context.request().path() + " failed. Cause = " + rs.cause().getMessage());
-                context.response().setStatusCode(SERVER_ERROR_STATUS_CODE).end(rs.cause().getMessage());
+                context.response().setStatusCode(SERVER_ERROR_RESPONSE_CODE).end(rs.cause().getMessage());
             } else {
                 final SeamlessResponse response = getPostBody(rs.result().body().toString(), SeamlessResponse.class);
                 final HttpServerResponse httpServerResponse = context.response().setStatusCode(response.getCode());

@@ -2,6 +2,7 @@ package com.appstetix.appstract.seamless.aws;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.appstetix.appstract.seamless.core.api.SeamlessAPILayer;
+import com.appstetix.appstract.seamless.core.generic.HttpHeaders;
 import com.appstetix.appstract.seamless.core.generic.SeamlessRequest;
 import com.appstetix.appstract.seamless.core.generic.SeamlessResponse;
 import com.appstetix.appstract.seamless.core.generic.UserContext;
@@ -16,6 +17,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.*;
 import static com.appstetix.appstract.seamless.core.generic.SeamlessResponse.*;
 
 public abstract class SeamlessAWS extends SeamlessAPILayer<Map<String, Object>, ApiGatewayResponse> implements RequestHandler<Map<String, Object>, ApiGatewayResponse> {
@@ -50,7 +52,7 @@ public abstract class SeamlessAWS extends SeamlessAPILayer<Map<String, Object>, 
             }
         } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
-            return new ApiGatewayResponse(SERVER_ERROR_STATUS_CODE, null, null, false);
+            return new ApiGatewayResponse(SERVER_ERROR_RESPONSE_CODE, null, null, false);
         }
     }
 
@@ -103,7 +105,7 @@ public abstract class SeamlessAWS extends SeamlessAPILayer<Map<String, Object>, 
         headers.put("Content-Type", TEXT_PLAIN);
         return ApiGatewayResponse.builder()
                 .setHeaders(headers)
-                .setStatusCode(UNAUTHORIZED_STATUS_CODE)
+                .setStatusCode(UNAUTHORIZED_ERROR_RESPONSE_CODE)
                 .setRawBody(ex.getMessage())
                 .build();
     }

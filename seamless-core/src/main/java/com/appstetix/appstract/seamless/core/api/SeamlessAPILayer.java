@@ -2,6 +2,7 @@ package com.appstetix.appstract.seamless.core.api;
 
 import com.appstetix.appstract.seamless.core.generic.SeamlessProvider;
 import com.appstetix.appstract.seamless.core.generic.UserContext;
+import com.appstetix.toolbelt.locksmyth.keycore.TokenDecoder;
 import com.appstetix.toolbelt.locksmyth.keycore.TokenType;
 import com.appstetix.toolbelt.locksmyth.keycore.exception.InvalidTokenException;
 import com.appstetix.toolbelt.locksmyth.keycore.token.KeyRing;
@@ -13,6 +14,8 @@ import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.MessageCodec;
 import io.vertx.core.json.Json;
 import org.apache.commons.lang3.StringUtils;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
@@ -22,9 +25,6 @@ public abstract class SeamlessAPILayer<REQ, RESP> implements SeamlessProvider<RE
 
     //VERTX SETTINGS
     protected static final String VERTX_DISABLE_FILE_CPRESOLVING = "vertx.disableFileCPResolving";
-    //STATUS CODES
-    protected static final int UNAUTHORIZED_STATUS_CODE = 401;
-    protected static final int SERVER_ERROR_STATUS_CODE = 500;
 
     static {
         System.setProperty(VERTX_DISABLE_FILE_CPRESOLVING, "true");
@@ -74,12 +74,11 @@ public abstract class SeamlessAPILayer<REQ, RESP> implements SeamlessProvider<RE
         return null;
     }
 
-    //TODO: investigate how to retrieve the DeviceID header and pass it through
     protected TokenValidator[] getValidators() {
 
-        TokenValidator webValidator = new TokenValidator(TokenType.WEB);
-        TokenValidator mobileValidator = new TokenValidator(TokenType.MOBILE);
-        TokenValidator desktopValidator = new TokenValidator(TokenType.DESKTOP);
+        TokenValidator webValidator = createWebTokenValidator();
+        TokenValidator mobileValidator = createMobileTokenValidator();
+        TokenValidator desktopValidator = createDesktopTokenValidator();
 
         return new TokenValidator[]{webValidator, mobileValidator, desktopValidator};
     }
@@ -90,6 +89,18 @@ public abstract class SeamlessAPILayer<REQ, RESP> implements SeamlessProvider<RE
 
     protected static void launch(String verticle, DeploymentOptions options) {
         vertx.deployVerticle(verticle, options);
+    }
+
+    protected TokenValidator createWebTokenValidator() {
+        return new TokenValidator(TokenType.WEB);
+    }
+
+    protected TokenValidator createMobileTokenValidator() {
+        return new TokenValidator(TokenType.MOBILE);
+    }
+
+    protected TokenValidator createDesktopTokenValidator() {
+        return new TokenValidator(TokenType.DESKTOP);
     }
 
 }

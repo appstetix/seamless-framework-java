@@ -6,10 +6,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 
 import java.lang.reflect.Array;
-import java.util.HashMap;
-import java.util.IllegalFormatConversionException;
-import java.util.IllegalFormatException;
-import java.util.Map;
+import java.util.*;
 
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -66,6 +63,11 @@ public class SeamlessRequest {
             return this.parameters.get(key);
         }
         return null;
+    }
+
+    public <T> T getParameter(String key, Class<T> clazz) {
+        final Object parameter = getParameter(key);
+        return Objects.isNull(parameter) ? null : clazz.cast(parameter);
     }
 
     public String getParameterAsString(String key) {
