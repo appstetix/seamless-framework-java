@@ -4,13 +4,14 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.json.Json;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.SERVER_ERROR_RESPONSE_CODE;
+import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.ResponseCode.SERVER_ERROR;
 
 public abstract class SeamlessHandler extends AbstractVerticle {
 
@@ -37,6 +38,15 @@ public abstract class SeamlessHandler extends AbstractVerticle {
         return null;
     }
 
+    protected <T> T getPostBody(String json, Class<T> clss) {
+        if (StringUtils.isNotEmpty(json)) {
+            if(StringUtils.isNotEmpty(json)) {
+                return Json.decodeValue(json, clss);
+            }
+        }
+        return null;
+    }
+
     protected void respond(Message message, SeamlessResponse response) {
         message.reply(Json.encode(response));
     }
@@ -49,9 +59,9 @@ public abstract class SeamlessHandler extends AbstractVerticle {
         logError(ex);
         reportIncident(message, ex);
         if(ex == null) {
-            message.fail(SERVER_ERROR_RESPONSE_CODE, ex.getMessage());
+            message.fail(SERVER_ERROR, ex.getMessage());
         } else {
-            message.fail(SERVER_ERROR_RESPONSE_CODE, DEFAULT_ERROR_MESSAGE);
+            message.fail(SERVER_ERROR, DEFAULT_ERROR_MESSAGE);
         }
     }
 

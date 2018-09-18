@@ -4,6 +4,7 @@ import com.appstetix.appstract.seamless.core.exception.IllegalParameterFormatExc
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
+import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.Array;
 import java.util.*;
@@ -21,10 +22,6 @@ public class SeamlessRequest {
     private UserContext userContext;
     private String method;
     private String body;
-
-    public boolean isValid() {
-        return true;
-    }
 
     public String getRequestPath() {
         return String.format(REQUEST_PATH_PATTERN, method.trim().toUpperCase(), path.trim()).trim();
@@ -76,7 +73,10 @@ public class SeamlessRequest {
 
     public String getParameterAsString(String key, String def) {
         if(this.parameters != null) {
-            return String.valueOf(this.parameters.get(key));
+            final Object value = this.parameters.get(key);
+            if(!Objects.isNull(value)) {
+                return String.valueOf(value);
+            }
         }
         return def;
     }
@@ -90,14 +90,18 @@ public class SeamlessRequest {
         try {
             if(this.hasParameter(key)) {
                 value = this.parameters.get(key);
-                if(value instanceof Array) {
-                    String[] arr = (String[]) value;
-                    value = arr[arr.length - 1];
+                if(!Objects.isNull(value)) {
+                    if(value.getClass().isArray()) {
+                        String[] arr = (String[]) value;
+                        System.out.println("Found array...returning last value found. index " + (arr.length - 1));
+                        value = arr[arr.length - 1];
+                    }
+                    return Integer.parseInt(String.valueOf(value));
                 }
-                return Integer.parseInt(String.valueOf(value));
             }
             return def;
         } catch (RuntimeException ex) {
+            ex.printStackTrace();
             throw new IllegalParameterFormatException(key, "Integer", value);
         }
     }
@@ -111,14 +115,17 @@ public class SeamlessRequest {
         try {
             if(this.hasParameter(key)) {
                 value = this.parameters.get(key);
-                if(value instanceof Array) {
-                    String[] arr = (String[]) value;
-                    value = arr[arr.length - 1];
+                if(!Objects.isNull(value)) {
+                    if (value.getClass().isArray()) {
+                        String[] arr = (String[]) value;
+                        value = arr[arr.length - 1];
+                    }
                 }
                 return Boolean.parseBoolean(String.valueOf(value));
             }
             return def;
         } catch (RuntimeException ex) {
+            ex.printStackTrace();
             throw new IllegalParameterFormatException(key, "Boolean", value);
         }
     }
@@ -132,14 +139,17 @@ public class SeamlessRequest {
         try {
             if(this.hasParameter(key)) {
                 value = this.parameters.get(key);
-                if(value instanceof Array) {
-                    String[] arr = (String[]) value;
-                    value = arr[arr.length - 1];
+                if(!Objects.isNull(value)) {
+                    if (value.getClass().isArray()) {
+                        String[] arr = (String[]) value;
+                        value = arr[arr.length - 1];
+                    }
                 }
                 return Long.parseLong(String.valueOf(value));
             }
             return def;
         } catch (RuntimeException ex) {
+            ex.printStackTrace();
             throw new IllegalParameterFormatException(key, "Long", value);
         }
     }
@@ -153,14 +163,17 @@ public class SeamlessRequest {
         try {
             if(this.hasParameter(key)) {
                 value = this.parameters.get(key);
-                if(value instanceof Array) {
-                    String[] arr = (String[]) value;
-                    value = arr[arr.length - 1];
+                if(!Objects.isNull(value)) {
+                    if (value.getClass().isArray()) {
+                        String[] arr = (String[]) value;
+                        value = arr[arr.length - 1];
+                    }
                 }
                 return Double.parseDouble(String.valueOf(value));
             }
             return def;
         } catch (RuntimeException ex) {
+            ex.printStackTrace();
             throw new IllegalParameterFormatException(key, "Double", value);
         }
     }
@@ -172,8 +185,10 @@ public class SeamlessRequest {
     public String[] getParameterAsArray(String key, String[] def) {
         if(this.hasParameter(key)) {
             final Object value = this.getParameter(key);
-            if(value instanceof Array) {
-                return (String[]) value;
+            if(!Objects.isNull(value)) {
+                if (value.getClass().isArray()) {
+                    return (String[]) value;
+                }
             }
             return new String[]{String.valueOf(value)};
         }
@@ -188,7 +203,7 @@ public class SeamlessRequest {
     }
 
     public String getHeader(String key) {
-        if(this.headers != null) {
+        if(hasHeader(key)) {
             return this.headers.get(key);
         }
         return null;
@@ -196,7 +211,10 @@ public class SeamlessRequest {
 
     public Integer getHeaderAsInteger(String key, int def) {
         if(hasHeader(key)) {
-            return Integer.parseInt(this.headers.get(key));
+            final String value = this.getHeader(key);
+            if(StringUtils.isNotEmpty(value)) {
+                return Integer.parseInt(value);
+            }
         }
         return def;
     }

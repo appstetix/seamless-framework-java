@@ -1,26 +1,19 @@
 package com.appstetix.appstract.seamless.core.api;
 
 import com.appstetix.appstract.seamless.core.generic.SeamlessHandler;
-import com.appstetix.appstract.seamless.core.generic.SeamlessRequest;
 import com.appstetix.appstract.seamless.core.generic.SeamlessResponse;
 import io.vertx.core.Handler;
-import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.Json;
 import org.apache.commons.lang3.StringUtils;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
-import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.*;
+import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.ResponseCode.*;
 
 public abstract class SeamlessAPIHandler extends SeamlessHandler {
 
-    protected static final String API_ENDPOINT_PATTERN = "%s:/v%s/%s/%s";
+    protected static final String API_ENDPOINT_PATTERN = "%s:/%s/v%s/%s";
     protected static final String API_ENDPOINT_PATTERN_SHORT = "%s:/v%s/%s";
 
     protected static final String DEFAULT_BAD_REQUEST_MESSAGE = "Bad Request";
@@ -74,7 +67,7 @@ public abstract class SeamlessAPIHandler extends SeamlessHandler {
     }
 
     protected void successfulWithNoContent(Message message, Map<String, String> headers) {
-        successfulResponse(message, NO_CONTENT_RESPONSE_CODE, null, headers);
+        successfulResponse(message, NO_CONTENT, null, headers);
     }
 
     protected void successfullyCreated(Message message) {
@@ -86,7 +79,7 @@ public abstract class SeamlessAPIHandler extends SeamlessHandler {
     }
     
     protected void successfullyCreated(Message message, Object data, Map<String, String> headers) {
-        successfulResponse(message, CREATED_RESPONSE_CODE, data, headers);
+        successfulResponse(message, CREATED, data, headers);
     }
 
     protected void successfullyAccepted(Message message) {
@@ -98,7 +91,7 @@ public abstract class SeamlessAPIHandler extends SeamlessHandler {
     }
 
     protected void successfullyAccepted(Message message, Object data, Map<String, String> headers) {
-        successfulResponse(message, ACCEPTED_RESPONSE_CODE, data, headers);
+        successfulResponse(message, ACCEPTED, data, headers);
     }
 
     protected void successful(Message message) {
@@ -110,7 +103,7 @@ public abstract class SeamlessAPIHandler extends SeamlessHandler {
     }
 
     protected void successful(Message message, Object data, Map<String, String> headers) {
-        successfulResponse(message, SUCCESSFUL_RESPONSE_CODE, data, headers);
+        successfulResponse(message, SUCCESSFUL, data, headers);
     }
 
     private void successfulResponse(Message message, int httpCode, Object data, Map<String, String> headers) {
@@ -119,56 +112,47 @@ public abstract class SeamlessAPIHandler extends SeamlessHandler {
 
     protected void badRequestResponse(Message message, String error) {
         final SeamlessResponse response = new SeamlessResponse();
-        response.setCode(BAD_REQUEST_ERROR_RESPONSE_CODE);
-        response.setErrorMessage(StringUtils.isNotEmpty(error) ? error : DEFAULT_ERROR_MESSAGE);
+        response.setCode(BAD_REQUEST_ERROR);
+        response.setErrorMessage(StringUtils.isNotEmpty(error) ? error : DEFAULT_BAD_REQUEST_MESSAGE);
         respond(message, response);
     }
 
     protected void badRequestResponse(Message message, Object payload) {
         final SeamlessResponse response = new SeamlessResponse();
-        response.setCode(BAD_REQUEST_ERROR_RESPONSE_CODE);
+        response.setCode(BAD_REQUEST_ERROR);
         response.setPayload(payload);
         respond(message, response);
     }
 
     protected void unauthorizedRequestResponse(Message message, String error) {
         final SeamlessResponse response = new SeamlessResponse();
-        response.setCode(UNAUTHORIZED_ERROR_RESPONSE_CODE);
+        response.setCode(UNAUTHORIZED_ERROR);
         response.setErrorMessage(StringUtils.isNotEmpty(error) ? error : DEFAULT_UNAUTHORIZED_REQUEST_MESSAGE);
         respond(message, response);
     }
 
     protected void unauthorizedRequestResponse(Message message, Object payload) {
         final SeamlessResponse response = new SeamlessResponse();
-        response.setCode(UNAUTHORIZED_ERROR_RESPONSE_CODE);
+        response.setCode(UNAUTHORIZED_ERROR);
         response.setPayload(payload);
         respond(message, response);
     }
 
     protected void conflictResponse(Message message, String error) {
         final SeamlessResponse response = new SeamlessResponse();
-        response.setCode(CONFLICT_ERROR_RESPONSE_CODE);
+        response.setCode(CONFLICT_ERROR);
         response.setErrorMessage(StringUtils.isNotEmpty(error) ? error : DEFAULT_CONFLICT_ERROR_MESSAGE);
         respond(message, response);
     }
 
     protected void conflictResponse(Message message, Object payload) {
         final SeamlessResponse response = new SeamlessResponse();
-        response.setCode(CONFLICT_ERROR_RESPONSE_CODE);
+        response.setCode(CONFLICT_ERROR);
         response.setPayload(payload);
         respond(message, response);
     }
 
-    protected <T> T getPostBody(String json, Class<T> clss) {
-        if (StringUtils.isNotEmpty(json)) {
-            if(StringUtils.isNotEmpty(json)) {
-                return Json.decodeValue(json, clss);
-            }
-        }
-        return null;
-    }
-
-    private String getEndpointPath(String subPath, int version, String method) {
+    protected String getEndpointPath(String subPath, int version, String method) {
         String pattern = API_ENDPOINT_PATTERN;
         if (StringUtils.isEmpty(subPath)) {
             pattern = API_ENDPOINT_PATTERN_SHORT;
@@ -176,7 +160,7 @@ public abstract class SeamlessAPIHandler extends SeamlessHandler {
         if (StringUtils.isEmpty(method)) {
             method = "GET";
         }
-        return String.format(pattern, method.toUpperCase(), String.valueOf(version), basepath.trim(), subPath.trim());
+        return String.format(pattern, method.toUpperCase(), basepath.trim(), String.valueOf(version), subPath.trim());
     }
 
 }

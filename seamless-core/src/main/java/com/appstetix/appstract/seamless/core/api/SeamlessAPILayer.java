@@ -1,8 +1,8 @@
 package com.appstetix.appstract.seamless.core.api;
 
 import com.appstetix.appstract.seamless.core.generic.SeamlessProvider;
+import com.appstetix.appstract.seamless.core.generic.SeamlessRequest;
 import com.appstetix.appstract.seamless.core.generic.UserContext;
-import com.appstetix.toolbelt.locksmyth.keycore.TokenDecoder;
 import com.appstetix.toolbelt.locksmyth.keycore.TokenType;
 import com.appstetix.toolbelt.locksmyth.keycore.exception.InvalidTokenException;
 import com.appstetix.toolbelt.locksmyth.keycore.token.KeyRing;
@@ -14,12 +14,12 @@ import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.MessageCodec;
 import io.vertx.core.json.Json;
 import org.apache.commons.lang3.StringUtils;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.AUTHORIZATION;
 
 public abstract class SeamlessAPILayer<REQ, RESP> implements SeamlessProvider<REQ, RESP> {
 
@@ -49,7 +49,8 @@ public abstract class SeamlessAPILayer<REQ, RESP> implements SeamlessProvider<RE
         return !bypass.contains(path);
     }
 
-    protected UserContext securityCheck(String token, boolean strict) throws InvalidTokenException {
+    protected UserContext securityCheck(SeamlessRequest request) throws InvalidTokenException {
+        String token = request.getHeader(AUTHORIZATION);
         if(StringUtils.isNotEmpty(token)) {
             try {
                 final KeyRing keyRing = KeyVerifier.getInstance().verify(token, getValidators());
@@ -59,7 +60,7 @@ public abstract class SeamlessAPILayer<REQ, RESP> implements SeamlessProvider<RE
                 ex.printStackTrace();
                 throw new InvalidTokenException();
             }
-        } else if(!strict) {
+        } else if(!isSecureEndpoint(request.getRequestPath())) {
             return null;
         }
         throw new InvalidTokenException("Unable to identify user");

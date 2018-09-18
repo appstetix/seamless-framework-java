@@ -13,14 +13,14 @@ import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.*;
-import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.SERVER_ERROR_RESPONSE_CODE;
-import static com.appstetix.appstract.seamless.core.generic.SeamlessResponse.*;
+import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.ResponseCode.SERVER_ERROR;
+import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.ResponseCode.UNAUTHORIZED_ERROR;
+import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.Value.*;
 
 @Slf4j
 public class SeamlessWeb extends SeamlessAPILayer<RoutingContext, HttpServerResponse> implements Handler<RoutingContext> {
@@ -30,17 +30,16 @@ public class SeamlessWeb extends SeamlessAPILayer<RoutingContext, HttpServerResp
         try {
             SeamlessRequest request = convertRequest(context);
             try {
-                final String authorization = context.request().getHeader("Authorization");
-                final UserContext userContext = securityCheck(authorization, isSecureEndpoint(request.getRequestPath()));
+                final UserContext userContext = securityCheck(request);
                 request.setUserContext(userContext);
                 process(context, request);
             } catch (InvalidTokenException ex) {
                 ex.printStackTrace();
-                context.response().setStatusCode(UNAUTHORIZED_ERROR_RESPONSE_CODE).end("Unable to identify user");
+                context.response().setStatusCode(UNAUTHORIZED_ERROR).end("Unable to identify user");
             }
         } catch (Exception e) {
             e.printStackTrace();
-            context.response().setStatusCode(SERVER_ERROR_RESPONSE_CODE).end("Internal Server Error");
+            context.response().setStatusCode(SERVER_ERROR).end("Internal Server Error");
         }
     }
 
@@ -52,11 +51,11 @@ public class SeamlessWeb extends SeamlessAPILayer<RoutingContext, HttpServerResp
         context.request().headers().forEach(entry -> {
             headers.put(entry.getKey(), entry.getValue());
         });
-        String ipAddress = context.request().getHeader("X-FORWARDED-FOR");
+        String ipAddress = context.request().getHeader(X_FORWARDED_FOR);
         if (ipAddress == null) {
             ipAddress = context.request().remoteAddress().host();
         }
-        headers.put("X-FORWARDED-FOR", ipAddress);
+        headers.put(X_FORWARDED_FOR, ipAddress);
 
         Map<String, Object> parameters = new HashMap<>();
         context.request().params().forEach(entry -> {
@@ -82,7 +81,7 @@ public class SeamlessWeb extends SeamlessAPILayer<RoutingContext, HttpServerResp
         vertx.eventBus().send(request.getRequestPath(), Json.encode(request), rs -> {
             if(rs.failed()) {
                 log.error("Request id = " + context.request().path() + " failed. Cause = " + rs.cause().getMessage());
-                context.response().setStatusCode(SERVER_ERROR_RESPONSE_CODE).end(rs.cause().getMessage());
+                context.response().setStatusCode(SERVER_ERROR).end(rs.cause().getMessage());
             } else {
                 final SeamlessResponse response = getPostBody(rs.result().body().toString(), SeamlessResponse.class);
                 final HttpServerResponse httpServerResponse = context.response().setStatusCode(response.getCode());

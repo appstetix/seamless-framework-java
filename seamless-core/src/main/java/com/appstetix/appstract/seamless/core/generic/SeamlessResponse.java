@@ -9,18 +9,14 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.CONTENT_TYPE;
+import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.Value.*;
+
 @Data
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SeamlessResponse {
-
-    public static final String CONTENT_TYPE_HEADER = "Content-Type";
-
-    public static final String APPLICATION_JSON = "application/json";
-    public static final String TEXT_HTML = "text/html";
-    public static final String TEXT_PLAIN = "text/plain";
-    public static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
 
     private int code;
     private Map<String, String> headers;
@@ -28,13 +24,11 @@ public class SeamlessResponse {
     private String errorMessage;
 
     public SeamlessResponse(int code, Map<String, String> headers) {
-        this.code = code;
-        this.headers = headers;
+        this(code, headers, null);
     }
 
     public SeamlessResponse(int code, Object payload) {
-        this.code = code;
-        this.payload = payload;
+        this(code, null, payload);
     }
 
     public SeamlessResponse(int code, Map<String, String> headers, Object payload) {
@@ -86,26 +80,26 @@ public class SeamlessResponse {
     }
 
     public String getContentType() {
-        return getHeader(CONTENT_TYPE_HEADER);
+        return getHeader(CONTENT_TYPE);
     }
 
     protected void determineContentType() {
         if(!hasHeaders()) {
             this.headers = new HashMap();
         }
-        if(!this.headers.containsKey(CONTENT_TYPE_HEADER)) {
+        if(!this.headers.containsKey(CONTENT_TYPE)) {
             if(hasPayload()) {
                 if (payload instanceof String) {
                     if(((String)payload).startsWith("<")) {
-                        this.headers.put(CONTENT_TYPE_HEADER, TEXT_HTML);
+                        this.headers.put(CONTENT_TYPE, TEXT_HTML);
                     }
                 } else if(payload instanceof byte[]) {
-                    this.headers.put(CONTENT_TYPE_HEADER, APPLICATION_OCTET_STREAM);
+                    this.headers.put(CONTENT_TYPE, APPLICATION_OCTET_STREAM);
                 } else {
-                    this.headers.put(CONTENT_TYPE_HEADER, APPLICATION_JSON);
+                    this.headers.put(CONTENT_TYPE, APPLICATION_JSON);
                 }
             } else {
-                this.headers.put(CONTENT_TYPE_HEADER, TEXT_PLAIN);
+                this.headers.put(CONTENT_TYPE, TEXT_PLAIN);
             }
         }
 
