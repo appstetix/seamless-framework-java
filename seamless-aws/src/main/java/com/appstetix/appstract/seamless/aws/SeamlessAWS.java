@@ -2,6 +2,7 @@ package com.appstetix.appstract.seamless.aws;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
+import com.appstetix.appstract.seamless.aws.factory.AWSEventFactory;
 import com.appstetix.appstract.seamless.core.api.SeamlessAPILayer;
 import com.appstetix.appstract.seamless.core.generic.SeamlessRequest;
 import com.appstetix.appstract.seamless.core.generic.SeamlessResponse;
@@ -11,9 +12,7 @@ import io.vertx.core.json.Json;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.BasicConfigurator;
-import org.slf4j.Logger;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -40,16 +39,16 @@ public abstract class SeamlessAWS extends SeamlessAPILayer<Map<String, Object>, 
                 vertx.eventBus().send(request.getRequestPath(), Json.encode(request), rs -> {
                     try {
                         SeamlessResponse response;
-                        if (rs.failed()) {
+                        if (rs.succeeded()) {
+                            response = getPostBody((String) rs.result().body(), SeamlessResponse.class);
+                        } else {
                             if(rs.cause() != null && rs.cause().getMessage() != null && context != null && context != null) {
                                 log.error("Request id = " + context.getAwsRequestId() + " failed. Cause = " + rs.cause().getMessage());
                                 response = new SeamlessResponse(500, rs.cause().getMessage());
                             } else {
                                 response = new SeamlessResponse(500, "Unable to process your request at this time");
                             }
-                            future.complete(response);
                         }
-                        response = getPostBody((String) rs.result().body(), SeamlessResponse.class);
                         future.complete(response);
                     } catch (Exception ex) {
                         ex.printStackTrace();
@@ -77,33 +76,15 @@ public abstract class SeamlessAWS extends SeamlessAPILayer<Map<String, Object>, 
 
     @Override
     public SeamlessRequest convertRequest(Map<String, Object> input) {
-
-        final SeamlessRequest request = new SeamlessRequest();
-
-        final Map queryStringParameters = (Map) input.get("queryStringParameters");
-        if(queryStringParameters != null && !queryStringParameters.isEmpty()) {
-            queryStringParameters.forEach((key, vals) -> {
-                if(vals.getClass().isArray()) {
-                    ArrayList values = (ArrayList) vals;
-                    values.forEach(o -> {
-                        request.addParameter((String) key, o);
-                    });
-                } else {
-                    request.addParameter((String) key, vals);
-                }
-            });
+        try {
+            return AWSEventFactory.getInstance().createRequest(input);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-
-        request.setHeaders((Map<String, String>) input.get("headers"));
-        request.setMethod((String) input.get("httpMethod"));
-        request.setPath((String) input.get("path"));
-        request.setBody((String) input.get("body"));
-
-        return request;
+        return null;
     }
 
     public ApiGatewayResponse convertResponse(SeamlessResponse response) {
-
         switch (response.getContentType()) {
             case APPLICATION_JSON : {
                 return ApiGatewayResponse.builder()

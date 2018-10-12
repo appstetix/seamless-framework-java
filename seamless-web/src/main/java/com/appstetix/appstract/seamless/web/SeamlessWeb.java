@@ -1,7 +1,6 @@
 package com.appstetix.appstract.seamless.web;
 
 import com.appstetix.appstract.seamless.core.api.SeamlessAPILayer;
-import com.appstetix.appstract.seamless.core.generic.HttpHeaders;
 import com.appstetix.appstract.seamless.core.generic.SeamlessRequest;
 import com.appstetix.appstract.seamless.core.generic.SeamlessResponse;
 import com.appstetix.appstract.seamless.core.generic.UserContext;
@@ -17,10 +16,10 @@ import org.apache.commons.codec.binary.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.*;
 import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.ResponseCode.SERVER_ERROR;
 import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.ResponseCode.UNAUTHORIZED_ERROR;
 import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.Value.*;
+import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.X_FORWARDED_FOR;
 
 @Slf4j
 public class SeamlessWeb extends SeamlessAPILayer<RoutingContext, HttpServerResponse> implements Handler<RoutingContext> {

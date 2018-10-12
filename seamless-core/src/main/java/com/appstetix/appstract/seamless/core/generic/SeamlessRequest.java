@@ -24,6 +24,9 @@ public class SeamlessRequest {
     private String body;
 
     public String getRequestPath() {
+        if(StringUtils.isEmpty(method)) {
+            return path.trim();
+        }
         return String.format(REQUEST_PATH_PATTERN, method.trim().toUpperCase(), path.trim()).trim();
     }
 

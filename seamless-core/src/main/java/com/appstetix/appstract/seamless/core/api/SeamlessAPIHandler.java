@@ -14,7 +14,6 @@ import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.Response
 public abstract class SeamlessAPIHandler extends SeamlessHandler {
 
     protected static final String API_ENDPOINT_PATTERN = "%s:/%s/v%s/%s";
-    protected static final String API_ENDPOINT_PATTERN_SHORT = "%s:/v%s/%s";
 
     protected static final String DEFAULT_BAD_REQUEST_MESSAGE = "Bad Request";
     protected static final String DEFAULT_UNAUTHORIZED_REQUEST_MESSAGE = "You're unauthorized to use this API";
@@ -153,14 +152,13 @@ public abstract class SeamlessAPIHandler extends SeamlessHandler {
     }
 
     protected String getEndpointPath(String subPath, int version, String method) {
-        String pattern = API_ENDPOINT_PATTERN;
         if (StringUtils.isEmpty(subPath)) {
-            pattern = API_ENDPOINT_PATTERN_SHORT;
+            throw new IllegalArgumentException("property [subPath] cannot be null or empty");
         }
         if (StringUtils.isEmpty(method)) {
             method = "GET";
         }
-        return String.format(pattern, method.toUpperCase(), basepath.trim(), String.valueOf(version), subPath.trim());
+        return String.format(API_ENDPOINT_PATTERN, method.toUpperCase(), basepath.trim(), String.valueOf(version), subPath.trim());
     }
 
 }
