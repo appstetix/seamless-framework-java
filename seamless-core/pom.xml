@@ -13,9 +13,6 @@
     <version>${parent.version}</version>
 
     <properties>
-        <!--<maven.deploy.skip>true</maven.deploy.skip>-->
-        <!--<jar.skipIfEmpty>true</jar.skipIfEmpty>-->
-        <!--<maven.install.skip>true</maven.install.skip>-->
         <vertx.version>3.5.3</vertx.version>
         <appstetix.toolbelt.locksmyth.version>3.0</appstetix.toolbelt.locksmyth.version>
     </properties>
@@ -27,16 +24,11 @@
             <artifactId>vertx-core</artifactId>
             <version>${vertx.version}</version>
         </dependency>
-        <!-- APPSTETIX LIBRARIES -->
+        <!-- CLASS GRAPH -->
         <dependency>
-            <groupId>com.appstetix.toolbelt</groupId>
-            <artifactId>keymaker</artifactId>
-            <version>${appstetix.toolbelt.locksmyth.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.appstetix.toolbelt</groupId>
-            <artifactId>keyverifier</artifactId>
-            <version>${appstetix.toolbelt.locksmyth.version}</version>
+            <groupId>io.github.classgraph</groupId>
+            <artifactId>classgraph</artifactId>
+            <version>LATEST</version>
         </dependency>
     </dependencies>
 

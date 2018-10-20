@@ -1,25 +1,19 @@
 package com.appstetix.appstract.seamless.core.api;
 
+import com.appstetix.appstract.seamless.core.annotation.API;
+import com.appstetix.appstract.seamless.core.annotation.Handler;
+import com.appstetix.appstract.seamless.core.generic.APIValidator;
+import com.appstetix.appstract.seamless.core.generic.FilterProcessor;
 import com.appstetix.appstract.seamless.core.generic.SeamlessProvider;
-import com.appstetix.appstract.seamless.core.generic.SeamlessRequest;
-import com.appstetix.appstract.seamless.core.generic.UserContext;
-import com.appstetix.toolbelt.locksmyth.keycore.TokenType;
-import com.appstetix.toolbelt.locksmyth.keycore.exception.InvalidTokenException;
-import com.appstetix.toolbelt.locksmyth.keycore.token.KeyRing;
-import com.appstetix.toolbelt.locksmyth.keycore.token.TokenValidator;
-import com.appstetix.toolbelt.locksmyth.keyverifier.KeyVerifier;
-import io.jsonwebtoken.JwtException;
+import com.appstetix.appstract.seamless.core.util.AnnotationUtil;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.MessageCodec;
 import io.vertx.core.json.Json;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.AUTHORIZATION;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public abstract class SeamlessAPILayer<REQ, RESP> implements SeamlessProvider<REQ, RESP> {
 
@@ -34,36 +28,20 @@ public abstract class SeamlessAPILayer<REQ, RESP> implements SeamlessProvider<RE
 
     private static List<String> bypass = new ArrayList();
     protected static DeploymentOptions options;
-    protected static Logger logger;
+    protected static APIValidator validator;
+    protected static FilterProcessor filterProcessor;
     protected static Vertx vertx;
 
     public static void addToBypass(String path) {
         bypass.add(path);
     }
 
-    protected static MessageCodec getMessageCodec() {
-        return null;
-    }
-
-    protected boolean isSecureEndpoint(String path) {
-        return !bypass.contains(path);
-    }
-
-    protected UserContext securityCheck(SeamlessRequest request) throws InvalidTokenException {
-        String token = request.getHeader(AUTHORIZATION);
-        if(StringUtils.isNotEmpty(token)) {
-            try {
-                final KeyRing keyRing = KeyVerifier.getInstance().verify(token, getValidators());
-                return new UserContext(keyRing.getProperties());
-            } catch (JwtException ex) {
-                System.out.println("Error while evaluating token: " + token);
-                ex.printStackTrace();
-                throw new InvalidTokenException();
-            }
-        } else if(!isSecureEndpoint(request.getRequestPath())) {
-            return null;
+    public SeamlessAPILayer() {
+        try {
+            deploy();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        throw new InvalidTokenException("Unable to identify user");
     }
 
     protected <T> T getPostBody(String json, Class<T> clss) {
@@ -75,33 +53,73 @@ public abstract class SeamlessAPILayer<REQ, RESP> implements SeamlessProvider<RE
         return null;
     }
 
-    protected TokenValidator[] getValidators() {
-
-        TokenValidator webValidator = createWebTokenValidator();
-        TokenValidator mobileValidator = createMobileTokenValidator();
-        TokenValidator desktopValidator = createDesktopTokenValidator();
-
-        return new TokenValidator[]{webValidator, mobileValidator, desktopValidator};
+    private void deploy() throws InstantiationException, IllegalAccessException {
+        API api = this.getClass().getDeclaredAnnotation(API.class);
+        if(api != null) {
+            int handlersSetup = setupHandlers(api);
+            if(handlersSetup > 0) {
+                setupValidator(api);
+                setupFilter(api);
+            }
+        } else {
+            System.out.println(String.format("WARNING: No @API annotation found on class [%s]", this.getClass().getName()));
+        }
     }
 
-    protected static void launch(String verticle) {
+    private int setupHandlers(API api) {
+        Set<String> handlers = getHandlers(api);
+        if(handlers.size() > 0) {
+            handlers.forEach(handler -> {
+                System.out.println(String.format("Launching handler [%s]", handler));
+                launch(handler, options);
+            });
+            return handlers.size();
+        } else {
+            System.err.println("No API handlers found");
+            return 0;
+        }
+    }
+
+    private void setupValidator(API api) throws IllegalAccessException, InstantiationException {
+        if(api != null && !API.DEFAULT_VALIDATOR.class.getName().equals(api.validator().getName())) {
+            System.out.println(String.format("FOUND VALIDATOR: [%s]", api.validator().getSimpleName()));
+            validator = api.validator().newInstance();
+        }
+    }
+
+    private void setupFilter(API api) throws InstantiationException, IllegalAccessException {
+        if(api != null && api.filters() != null && !API.DEFAULT_FILTER.class.equals(api.filters()[0])) {
+            System.out.println(String.format("FOUND %d FILTERS", api.filters().length));
+            filterProcessor = new FilterProcessor(api.filters());
+        }
+    }
+
+    private Set<String> getHandlers(API api) {
+        if(api != null) {
+            if(api.handlers().length > 0) {
+                System.out.println(String.format("FOUND %d HANDLERS", api.handlers().length));
+                return Arrays.stream(api.handlers()).map(Class::getName).collect(Collectors.toSet());
+            } else {
+                return AnnotationUtil.findClassesWithAnnotation(Handler.class);
+            }
+        }
+        return Collections.EMPTY_SET;
+    }
+
+    private static void launch(String verticle) {
         launch(verticle, options);
     }
 
-    protected static void launch(String verticle, DeploymentOptions options) {
+    private static void launch(String verticle, DeploymentOptions options) {
         vertx.deployVerticle(verticle, options);
     }
 
-    protected TokenValidator createWebTokenValidator() {
-        return new TokenValidator(TokenType.WEB);
+    private boolean isSecureEndpoint(String path) {
+        return !bypass.contains(path);
     }
 
-    protected TokenValidator createMobileTokenValidator() {
-        return new TokenValidator(TokenType.MOBILE);
-    }
-
-    protected TokenValidator createDesktopTokenValidator() {
-        return new TokenValidator(TokenType.DESKTOP);
+    private static MessageCodec getMessageCodec() {
+        return null;
     }
 
 }
