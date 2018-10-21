@@ -97,7 +97,7 @@ public abstract class SeamlessAPILayer<REQ, RESP> implements SeamlessProvider<RE
                 setupDeliveryOptions(api);
             }
         } else {
-            System.out.println(String.format("WARNING: No @API annotation found on class [%s]", this.getClass().getName()));
+            log.warn(String.format("WARNING: No @API annotation found on class [%s]", this.getClass().getName()));
         }
     }
 
@@ -105,26 +105,26 @@ public abstract class SeamlessAPILayer<REQ, RESP> implements SeamlessProvider<RE
         Set<String> handlers = getHandlers(api);
         if(handlers.size() > 0) {
             handlers.forEach(handler -> {
-                System.out.println(String.format("Launching handler [%s]", handler));
+                log.info(String.format("Launching handler [%s]", handler));
                 launch(handler, options);
             });
             return handlers.size();
         } else {
-            System.err.println("No API handlers found");
+            log.error("No API handlers found");
             return 0;
         }
     }
 
     private void setupValidator(API api) throws IllegalAccessException, InstantiationException {
         if(api != null && !API.DEFAULT_VALIDATOR.class.getName().equals(api.validator().getName())) {
-            System.out.println(String.format("FOUND VALIDATOR: [%s]", api.validator().getSimpleName()));
+            log.info(String.format("INSTALLING VALIDATOR: [%s]", api.validator().getSimpleName()));
             validator = api.validator().newInstance();
         }
     }
 
     private void setupFilter(API api) throws InstantiationException, IllegalAccessException {
         if(api != null && api.filters() != null && !API.DEFAULT_FILTER.class.equals(api.filters()[0])) {
-            System.out.println(String.format("FOUND %d FILTERS", api.filters().length));
+            log.info(String.format("INSTALLING FILTERS: [%d]", api.filters().length));
             filterProcessor = new FilterProcessor(api.filters());
         }
     }
@@ -134,7 +134,7 @@ public abstract class SeamlessAPILayer<REQ, RESP> implements SeamlessProvider<RE
         if(api.requestTimeout() > 0) {
             this.deliveryOptions.setSendTimeout(api.requestTimeout());
         }
-        if(api.requestTimeout() < 1000) {
+        if(api.requestTimeout() > 0 && api.requestTimeout() < 1000) {
             log.warn("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
             log.warn(String.format("Your request timeout is less than 1 second [%d]. This is not recommended", api.requestTimeout()));
             log.warn("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
@@ -144,7 +144,7 @@ public abstract class SeamlessAPILayer<REQ, RESP> implements SeamlessProvider<RE
     private Set<String> getHandlers(API api) {
         if(api != null) {
             if(api.handlers().length > 0) {
-                System.out.println(String.format("FOUND %d HANDLERS", api.handlers().length));
+                log.debug(String.format("FOUND %d HANDLERS", api.handlers().length));
                 return Arrays.stream(api.handlers()).map(Class::getName).collect(Collectors.toSet());
             } else {
                 return AnnotationUtil.findClassesWithAnnotation(APIHandler.class);

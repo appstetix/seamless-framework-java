@@ -12,6 +12,11 @@ public abstract class SeamlessAPIHandler extends SeamlessHandler {
     protected static final String DEFAULT_BAD_REQUEST_MESSAGE = "Bad Request";
     protected static final String DEFAULT_UNAUTHORIZED_REQUEST_MESSAGE = "You're unauthorized to use this API";
     protected static final String DEFAULT_CONFLICT_ERROR_MESSAGE = "Conflict Detected";
+    protected static final String DEFAULT_ERROR_MESSAGE = "Unable to service your request at this time";
+
+    public SeamlessAPIHandler() {
+        super();
+    }
 
     //HTTP RESPONSE HANDLERS
     protected void successfulWithNoContent(Message message) {
@@ -102,6 +107,15 @@ public abstract class SeamlessAPIHandler extends SeamlessHandler {
         response.setCode(CONFLICT_ERROR);
         response.setPayload(payload);
         respond(message, response);
+    }
+
+    protected void reportServerError(Message message, Exception ex) {
+        ex.printStackTrace();
+        if(ex == null) {
+            message.fail(SERVER_ERROR, ex.getMessage());
+        } else {
+            message.fail(SERVER_ERROR, DEFAULT_ERROR_MESSAGE);
+        }
     }
 
 }

@@ -47,7 +47,7 @@ public abstract class SeamlessHandler extends AbstractVerticle {
     }
 
     protected void respond(Message message, SeamlessResponse response) {
-        respond(message, null, response);
+        respond(message, new DeliveryOptions(), response);
     }
 
     protected void respond(Message message, DeliveryOptions options, SeamlessResponse response) {
@@ -123,7 +123,7 @@ public abstract class SeamlessHandler extends AbstractVerticle {
                 }
             }
         } else {
-            System.out.println("No fields found");
+            log.warn("No fields found");
         }
     }
 

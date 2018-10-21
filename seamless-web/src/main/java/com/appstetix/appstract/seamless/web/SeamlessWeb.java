@@ -6,7 +6,6 @@ import com.appstetix.appstract.seamless.core.api.SeamlessResponse;
 import com.appstetix.appstract.seamless.core.exception.APIFilterException;
 import com.appstetix.appstract.seamless.core.exception.APIViolationException;
 import com.appstetix.appstract.seamless.web.annotation.CORS;
-import com.appstetix.appstract.seamless.web.annotation.WebServer;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServer;
@@ -122,11 +121,14 @@ public class SeamlessWeb extends SeamlessAPILayer<RoutingContext, HttpServerResp
     }
 
     private void starWebServer() {
-        final WebServer webServer = this.getClass().getAnnotation(WebServer.class);
         HttpServer server = vertx.createHttpServer();
         Router router = setupRouter();
         router.route().handler(this);
-        server.requestHandler(router::accept).listen(webServer != null ? webServer.port() : 8888);
+        server.requestHandler(router::accept).listen(SeamlessWebProperties.APPLICATION_PORT);
+        log.info(String.format("Started web server on port : %d", SeamlessWebProperties.APPLICATION_PORT));
+        log.info("=================================================");
+        log.info("            SEAMLESS SERVICE DEPLOYED            ");
+        log.info("=================================================");
     }
 
     private Router setupRouter() {
@@ -140,7 +142,7 @@ public class SeamlessWeb extends SeamlessAPILayer<RoutingContext, HttpServerResp
     private void setupCors(Router router) {
         CORS cors = this.getClass().getAnnotation(CORS.class);
         if(cors != null) {
-            System.out.println("Configuring Cors");
+            log.info("Configuring CORS");
             CorsHandler handler = CorsHandler.create(cors.origins());
             if(cors.methods().length > 0) {
                 handler.allowedMethods(Arrays.stream(cors.methods()).collect(Collectors.toSet()));
