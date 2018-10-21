@@ -16,6 +16,7 @@
         <amazon.aws.lambda.core.version>1.1.0</amazon.aws.lambda.core.version>
         <amazon.aws.lambda.logging.version>1.0.0</amazon.aws.lambda.logging.version>
         <apache.commons.codec.version>1.11</apache.commons.codec.version>
+        <junit.version>4.12</junit.version>
     </properties>
 
     <dependencies>
@@ -42,7 +43,13 @@
             <artifactId>commons-codec</artifactId>
             <version>${apache.commons.codec.version}</version>
         </dependency>
-
+        <!-- JUNIT LIBRARY -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
 </project>
