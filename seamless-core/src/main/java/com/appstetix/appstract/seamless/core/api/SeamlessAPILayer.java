@@ -1,21 +1,27 @@
 package com.appstetix.appstract.seamless.core.api;
 
 import com.appstetix.appstract.seamless.core.annotation.API;
-import com.appstetix.appstract.seamless.core.annotation.Handler;
+import com.appstetix.appstract.seamless.core.annotation.APIHandler;
 import com.appstetix.appstract.seamless.core.exception.APIFilterException;
 import com.appstetix.appstract.seamless.core.exception.APIViolationException;
 import com.appstetix.appstract.seamless.core.generic.APIValidator;
 import com.appstetix.appstract.seamless.core.generic.FilterProcessor;
 import com.appstetix.appstract.seamless.core.util.AnnotationUtil;
+import io.vertx.core.AsyncResult;
 import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.DeliveryOptions;
+import io.vertx.core.eventbus.Message;
 import io.vertx.core.eventbus.MessageCodec;
 import io.vertx.core.json.Json;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 public abstract class SeamlessAPILayer<REQ, RESP> implements SeamlessProvider<REQ, RESP> {
 
     //VERTX SETTINGS
@@ -28,11 +34,13 @@ public abstract class SeamlessAPILayer<REQ, RESP> implements SeamlessProvider<RE
     }
 
     private static List<String> bypass = new ArrayList();
+
     protected static DeploymentOptions options;
     protected static Vertx vertx;
 
-    protected APIValidator validator;
-    protected FilterProcessor filterProcessor;
+    private APIValidator validator;
+    private FilterProcessor filterProcessor;
+    private DeliveryOptions deliveryOptions;
 
     public static void addToBypass(String path) {
         bypass.add(path);
@@ -46,16 +54,28 @@ public abstract class SeamlessAPILayer<REQ, RESP> implements SeamlessProvider<RE
         }
     }
 
+    public boolean isSecureEndpoint(String path) {
+        return !bypass.contains(path);
+    }
+
+    public DeliveryOptions getDeliveryOptions() {
+        return deliveryOptions;
+    }
+
     protected void executeValidator(SeamlessRequest request) throws APIViolationException {
         if(this.validator != null) {
-            validator.validate(request);
+            validator.validate(request, this);
         }
     }
 
     protected void executeFilters(SeamlessRequest request, Object rawInput) throws APIFilterException {
         if (this.filterProcessor != null) {
-            filterProcessor.begin(request, rawInput);
+            filterProcessor.process(request, rawInput);
         }
+    }
+
+    protected void dispatch(SeamlessRequest request, Handler<AsyncResult<Message<Object>>> handler) {
+        vertx.eventBus().send(request.getRequestPath(), Json.encode(request), getDeliveryOptions(), handler);
     }
 
     protected <T> T getPostBody(String json, Class<T> clss) {
@@ -74,6 +94,7 @@ public abstract class SeamlessAPILayer<REQ, RESP> implements SeamlessProvider<RE
             if(handlersSetup > 0) {
                 setupValidator(api);
                 setupFilter(api);
+                setupDeliveryOptions(api);
             }
         } else {
             System.out.println(String.format("WARNING: No @API annotation found on class [%s]", this.getClass().getName()));
@@ -108,13 +129,25 @@ public abstract class SeamlessAPILayer<REQ, RESP> implements SeamlessProvider<RE
         }
     }
 
+    private void setupDeliveryOptions(API api) {
+        this.deliveryOptions = new DeliveryOptions();
+        if(api.requestTimeout() > 0) {
+            this.deliveryOptions.setSendTimeout(api.requestTimeout());
+        }
+        if(api.requestTimeout() < 1000) {
+            log.warn("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+            log.warn(String.format("Your request timeout is less than 1 second [%d]. This is not recommended", api.requestTimeout()));
+            log.warn("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+        }
+    }
+
     private Set<String> getHandlers(API api) {
         if(api != null) {
             if(api.handlers().length > 0) {
                 System.out.println(String.format("FOUND %d HANDLERS", api.handlers().length));
                 return Arrays.stream(api.handlers()).map(Class::getName).collect(Collectors.toSet());
             } else {
-                return AnnotationUtil.findClassesWithAnnotation(Handler.class);
+                return AnnotationUtil.findClassesWithAnnotation(APIHandler.class);
             }
         }
         return Collections.EMPTY_SET;
@@ -126,10 +159,6 @@ public abstract class SeamlessAPILayer<REQ, RESP> implements SeamlessProvider<RE
 
     private static void launch(String verticle, DeploymentOptions options) {
         vertx.deployVerticle(verticle, options);
-    }
-
-    private boolean isSecureEndpoint(String path) {
-        return !bypass.contains(path);
     }
 
     private static MessageCodec getMessageCodec() {

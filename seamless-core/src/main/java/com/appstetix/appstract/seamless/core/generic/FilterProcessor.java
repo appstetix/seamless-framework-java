@@ -19,10 +19,10 @@ public class FilterProcessor {
         }
     }
 
-    public void begin(SeamlessRequest request, Object rawInput) throws APIFilterException {
+    public void process(SeamlessRequest request, Object rawInput) throws APIFilterException {
         if(this.filters != null && !filters.isEmpty()) {
             for (APIFilter filter: this.filters) {
-                filter.handle(request, rawInput);
+                filter.filter(request, rawInput);
             }
         }
     }

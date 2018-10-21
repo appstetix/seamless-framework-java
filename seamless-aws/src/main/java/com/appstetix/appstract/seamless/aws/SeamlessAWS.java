@@ -37,7 +37,7 @@ public abstract class SeamlessAWS extends SeamlessAPILayer<Map<String, Object>, 
                 executeValidator(request);
                 executeFilters(request, input);
                 final CompletableFuture<SeamlessResponse> future = new CompletableFuture<>();
-                vertx.eventBus().send(request.getRequestPath(), Json.encode(request), rs -> {
+                dispatch(request, rs -> {
                     try {
                         SeamlessResponse response;
                         if (rs.succeeded()) {

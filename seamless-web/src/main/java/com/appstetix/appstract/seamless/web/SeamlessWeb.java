@@ -5,16 +5,24 @@ import com.appstetix.appstract.seamless.core.api.SeamlessRequest;
 import com.appstetix.appstract.seamless.core.api.SeamlessResponse;
 import com.appstetix.appstract.seamless.core.exception.APIFilterException;
 import com.appstetix.appstract.seamless.core.exception.APIViolationException;
+import com.appstetix.appstract.seamless.web.annotation.CORS;
+import com.appstetix.appstract.seamless.web.annotation.WebServer;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
+import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.ext.web.handler.CorsHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.ResponseCode.SERVER_ERROR;
 import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.ResponseCode.UNAUTHORIZED_ERROR;
@@ -26,6 +34,7 @@ public class SeamlessWeb extends SeamlessAPILayer<RoutingContext, HttpServerResp
 
     public SeamlessWeb() {
         super();
+        starWebServer();
     }
 
     @Override
@@ -83,8 +92,8 @@ public class SeamlessWeb extends SeamlessAPILayer<RoutingContext, HttpServerResp
     }
 
     protected void process(RoutingContext context, SeamlessRequest request) {
-        System.out.println("Request made to : " + request.getRequestPath());
-        vertx.eventBus().send(request.getRequestPath(), Json.encode(request), rs -> {
+        log.info("Request made to : " + request.getRequestPath());
+        dispatch(request, rs -> {
             if(rs.failed()) {
                 log.error("Request id = " + context.request().path() + " failed. Cause = " + rs.cause().getMessage());
                 context.response().setStatusCode(SERVER_ERROR).end(rs.cause().getMessage());
@@ -105,8 +114,6 @@ public class SeamlessWeb extends SeamlessAPILayer<RoutingContext, HttpServerResp
                     } else {
                         httpServerResponse.end(Json.encode(response.getPayload()));
                     }
-                } else if(response.hasErrorMessage()) {
-                    httpServerResponse.end(Json.encode(response.getErrorMessage()));
                 } else {
                     httpServerResponse.end();
                 }
@@ -114,5 +121,34 @@ public class SeamlessWeb extends SeamlessAPILayer<RoutingContext, HttpServerResp
         });
     }
 
+    private void starWebServer() {
+        final WebServer webServer = this.getClass().getAnnotation(WebServer.class);
+        HttpServer server = vertx.createHttpServer();
+        Router router = setupRouter();
+        router.route().handler(this);
+        server.requestHandler(router::accept).listen(webServer != null ? webServer.port() : 8888);
+    }
 
+    private Router setupRouter() {
+        Router router = Router.router(vertx);
+        setupCors(router);
+        router.route().handler(BodyHandler.create());
+        return router;
+    }
+
+
+    private void setupCors(Router router) {
+        CORS cors = this.getClass().getAnnotation(CORS.class);
+        if(cors != null) {
+            System.out.println("Configuring Cors");
+            CorsHandler handler = CorsHandler.create(cors.origins());
+            if(cors.methods().length > 0) {
+                handler.allowedMethods(Arrays.stream(cors.methods()).collect(Collectors.toSet()));
+            }
+            if(cors.headers().length > 0) {
+                handler.allowedHeaders(Arrays.stream(cors.headers()).collect(Collectors.toSet()));
+            }
+            router.route().handler(handler);
+        }
+    }
 }

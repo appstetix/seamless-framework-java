@@ -1,7 +1,7 @@
 package com.appstetix.appstract.seamless.core.api;
 
 import com.appstetix.appstract.seamless.core.annotation.Endpoint;
-import com.appstetix.appstract.seamless.core.annotation.Handler;
+import com.appstetix.appstract.seamless.core.annotation.APIHandler;
 import com.appstetix.appstract.seamless.core.annotation.Task;
 import com.appstetix.appstract.seamless.core.exception.MissingHandlerException;
 import com.appstetix.appstract.seamless.core.generic.AccessType;
@@ -55,8 +55,8 @@ public abstract class SeamlessHandler extends AbstractVerticle {
     }
 
     private void evaluate() throws MissingHandlerException {
-        if(this.getClass().isAnnotationPresent(Handler.class)) {
-            Handler handler = this.getClass().getAnnotation(Handler.class);
+        if(this.getClass().isAnnotationPresent(APIHandler.class)) {
+            APIHandler handler = this.getClass().getAnnotation(APIHandler.class);
             if(AccessType.ALL.equals(handler.access()) || AccessType.WEB_ONLY.equals(handler.access())) {
                 evaluateEndpoints(handler.baseURL());
             }
@@ -66,7 +66,7 @@ public abstract class SeamlessHandler extends AbstractVerticle {
         } else {
             throw new MissingHandlerException(
                     String.format("No Seamless handler found for '%s'. Please annotate this class with @%s",
-                        this.getClass().getName(), Handler.class.getSimpleName()));
+                        this.getClass().getName(), APIHandler.class.getSimpleName()));
         }
     }
 

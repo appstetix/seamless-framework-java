@@ -8,7 +8,7 @@ import java.lang.annotation.*;
 @Inherited
 @Target({ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Handler {
+public @interface APIHandler {
 
     String baseURL() default "";
     AccessType access() default AccessType.ALL;

@@ -18,10 +18,12 @@ import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.Value.*;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SeamlessResponse {
 
+    public static final int DEFAULT_ERROR_CODE = -1;
+
     private int code;
     private Map<String, String> headers;
     private Object payload;
-    private String errorMessage;
+    private Throwable error;
 
     public SeamlessResponse(int code, Map<String, String> headers) {
         this(code, headers, null);
@@ -38,8 +40,9 @@ public class SeamlessResponse {
         determineContentType();
     }
 
-    public SeamlessResponse(String errorMessage) {
-        this.errorMessage = errorMessage;
+    public SeamlessResponse(Throwable error) {
+        this.error = error;
+        this.code = DEFAULT_ERROR_CODE;
     }
 
     public boolean isSuccessful() {
@@ -51,7 +54,7 @@ public class SeamlessResponse {
     }
 
     public boolean hasErrorMessage() {
-        return StringUtils.isNotEmpty(this.errorMessage);
+        return this.error != null;
     }
 
     public boolean hasHeaders() {

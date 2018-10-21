@@ -65,7 +65,7 @@ public abstract class SeamlessAPIHandler extends SeamlessHandler {
     protected void badRequestResponse(Message message, String error) {
         final SeamlessResponse response = new SeamlessResponse();
         response.setCode(BAD_REQUEST_ERROR);
-        response.setErrorMessage(StringUtils.isNotEmpty(error) ? error : DEFAULT_BAD_REQUEST_MESSAGE);
+        response.setPayload(StringUtils.isNotEmpty(error) ? error : DEFAULT_BAD_REQUEST_MESSAGE);
         respond(message, response);
     }
 
@@ -79,7 +79,7 @@ public abstract class SeamlessAPIHandler extends SeamlessHandler {
     protected void unauthorizedRequestResponse(Message message, String error) {
         final SeamlessResponse response = new SeamlessResponse();
         response.setCode(UNAUTHORIZED_ERROR);
-        response.setErrorMessage(StringUtils.isNotEmpty(error) ? error : DEFAULT_UNAUTHORIZED_REQUEST_MESSAGE);
+        response.setPayload(StringUtils.isNotEmpty(error) ? error : DEFAULT_UNAUTHORIZED_REQUEST_MESSAGE);
         respond(message, response);
     }
 
@@ -93,7 +93,7 @@ public abstract class SeamlessAPIHandler extends SeamlessHandler {
     protected void conflictResponse(Message message, String error) {
         final SeamlessResponse response = new SeamlessResponse();
         response.setCode(CONFLICT_ERROR);
-        response.setErrorMessage(StringUtils.isNotEmpty(error) ? error : DEFAULT_CONFLICT_ERROR_MESSAGE);
+        response.setPayload(StringUtils.isNotEmpty(error) ? error : DEFAULT_CONFLICT_ERROR_MESSAGE);
         respond(message, response);
     }
 

@@ -22,7 +22,9 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <lombok.version>1.18.0</lombok.version>
         <apache.commons.lang3.version>3.5</apache.commons.lang3.version>
+        <apache.commons.codec.version>1.11</apache.commons.codec.version>
         <slf4j.version>1.7.25</slf4j.version>
+        <junit.version>4.12</junit.version>
     </properties>
 
     <dependencies>
@@ -39,12 +41,54 @@
             <artifactId>commons-lang3</artifactId>
             <version>${apache.commons.lang3.version}</version>
         </dependency>
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+            <version>${apache.commons.codec.version}</version>
+        </dependency>
         <!-- LOGGING -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
             <version>${slf4j.version}</version>
         </dependency>
+        <!-- JUNIT LIBRARY -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.appstetix.appstract</groupId>
+                <artifactId>seamless-core</artifactId>
+                <version>${parent.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.appstetix.appstract</groupId>
+                <artifactId>seamless-component</artifactId>
+                <version>${parent.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.appstetix.appstract</groupId>
+                <artifactId>seamless-web</artifactId>
+                <version>${parent.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.appstetix.appstract</groupId>
+                <artifactId>seamless-aws</artifactId>
+                <version>${parent.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.appstetix.appstract</groupId>
+                <artifactId>seamless-data</artifactId>
+                <version>${parent.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
 </project>
