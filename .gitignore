@@ -67,6 +67,4 @@ hs_err_pid*
 ### Java template
 .idea
 *.iml
-seamless-core/target/
-seamless-aws/target/
-seamless-web/target/
+*/target/

@@ -3,8 +3,8 @@ package com.appstetix.appstract.seamless.web;
 import com.appstetix.appstract.seamless.core.api.SeamlessAPILayer;
 import com.appstetix.appstract.seamless.core.api.SeamlessRequest;
 import com.appstetix.appstract.seamless.core.api.SeamlessResponse;
-import com.appstetix.appstract.seamless.core.generic.UserContext;
-import com.appstetix.toolbelt.locksmyth.keycore.exception.InvalidTokenException;
+import com.appstetix.appstract.seamless.core.exception.APIFilterException;
+import com.appstetix.appstract.seamless.core.exception.APIViolationException;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
@@ -24,17 +24,24 @@ import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.X_FORWAR
 @Slf4j
 public class SeamlessWeb extends SeamlessAPILayer<RoutingContext, HttpServerResponse> implements Handler<RoutingContext> {
 
+    public SeamlessWeb() {
+        super();
+    }
+
     @Override
     public void handle(RoutingContext context) {
         try {
             SeamlessRequest request = convertRequest(context);
             try {
-                final UserContext userContext = securityCheck(request);
-                request.setUserContext(userContext);
+                executeValidator(request);
+                executeFilters(request, context.request());
                 process(context, request);
-            } catch (InvalidTokenException ex) {
+            } catch (APIViolationException ex) {
                 ex.printStackTrace();
                 context.response().setStatusCode(UNAUTHORIZED_ERROR).end("Unable to identify user");
+            } catch (APIFilterException ex) {
+                ex.printStackTrace();
+                context.response().setStatusCode(ex.getCode()).end(ex.getMessage());
             }
         } catch (Exception e) {
             e.printStackTrace();
