@@ -4,10 +4,10 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.appstetix.appstract.seamless.aws.factory.AWSEventFactory;
 import com.appstetix.appstract.seamless.core.api.SeamlessAPILayer;
-import com.appstetix.appstract.seamless.core.generic.SeamlessRequest;
-import com.appstetix.appstract.seamless.core.generic.SeamlessResponse;
-import com.appstetix.appstract.seamless.core.generic.UserContext;
-import com.appstetix.toolbelt.locksmyth.keycore.exception.InvalidTokenException;
+import com.appstetix.appstract.seamless.core.exception.APIFilterException;
+import com.appstetix.appstract.seamless.core.exception.APIViolationException;
+import com.appstetix.appstract.seamless.core.api.SeamlessRequest;
+import com.appstetix.appstract.seamless.core.api.SeamlessResponse;
 import io.vertx.core.json.Json;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.ResponseCode.BAD_REQUEST_ERROR;
 import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.ResponseCode.SERVER_ERROR;
 import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.ResponseCode.UNAUTHORIZED_ERROR;
 import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.Value.*;
@@ -33,8 +34,8 @@ public abstract class SeamlessAWS extends SeamlessAPILayer<Map<String, Object>, 
         try {
             SeamlessRequest request = convertRequest(input);
             try {
-                final UserContext userContext = securityCheck(request);
-                request.setUserContext(userContext);
+                executeValidator(request);
+                executeFilters(request, input);
                 final CompletableFuture<SeamlessResponse> future = new CompletableFuture<>();
                 vertx.eventBus().send(request.getRequestPath(), Json.encode(request), rs -> {
                     try {
@@ -64,9 +65,12 @@ public abstract class SeamlessAWS extends SeamlessAPILayer<Map<String, Object>, 
                 }
 
                 return convertResponse(response);
-            } catch (InvalidTokenException ex) {
+            } catch (APIViolationException ex) {
                 ex.printStackTrace();
                 return sendUnauthorizedResponse(ex);
+            } catch (APIFilterException ex) {
+                ex.printStackTrace();
+                return sendErrorResponse(ex.getCode(), ex.getMessage());
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -111,14 +115,26 @@ public abstract class SeamlessAWS extends SeamlessAPILayer<Map<String, Object>, 
         }
     }
 
-    private ApiGatewayResponse sendUnauthorizedResponse(InvalidTokenException ex) {
+    private ApiGatewayResponse sendUnauthorizedResponse(Exception ex) {
+        return sendErrorResponse(401, ex.getMessage());
+    }
+
+    private ApiGatewayResponse sendBadRequestResponse(Exception ex) {
+        return sendErrorResponse(400, ex.getMessage());
+    }
+
+    private ApiGatewayResponse sendErrorResponse(int code, Object body) {
         Map<String, String> headers = new HashMap();
         headers.put("Content-Type", TEXT_PLAIN);
-        return ApiGatewayResponse.builder()
+        final ApiGatewayResponse.Builder builder = ApiGatewayResponse.builder()
                 .setHeaders(headers)
-                .setStatusCode(UNAUTHORIZED_ERROR)
-                .setRawBody(ex.getMessage())
-                .build();
+                .setStatusCode(code);
+        if(body instanceof String) {
+            builder.setObjectBody(body);
+        } else {
+            builder.setRawBody((String) body);
+        }
+        return builder.build();
     }
 
     private Map<String, String> getCORSHeaders() {

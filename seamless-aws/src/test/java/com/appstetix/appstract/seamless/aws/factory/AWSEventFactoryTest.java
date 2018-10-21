@@ -1,6 +1,6 @@
 package com.appstetix.appstract.seamless.aws.factory;
 
-import com.appstetix.appstract.seamless.core.generic.SeamlessRequest;
+import com.appstetix.appstract.seamless.core.api.SeamlessRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Assert;
 import org.junit.Test;

@@ -1,5 +1,8 @@
 package com.appstetix.appstract.seamless.core.generic;
 
+import com.appstetix.appstract.seamless.core.api.SeamlessRequest;
+import com.appstetix.appstract.seamless.core.exception.APIFilterException;
+
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -16,7 +19,7 @@ public class FilterProcessor {
         }
     }
 
-    public void begin(SeamlessRequest request, Object rawInput) throws Exception {
+    public void begin(SeamlessRequest request, Object rawInput) throws APIFilterException {
         if(this.filters != null && !filters.isEmpty()) {
             for (APIFilter filter: this.filters) {
                 filter.handle(request, rawInput);

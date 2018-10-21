@@ -3,7 +3,7 @@ package com.appstetix.appstract.seamless.core.annotation;
 import com.appstetix.appstract.seamless.core.exception.SeamlessFilterException;
 import com.appstetix.appstract.seamless.core.generic.APIFilter;
 import com.appstetix.appstract.seamless.core.generic.APIValidator;
-import com.appstetix.appstract.seamless.core.generic.SeamlessRequest;
+import com.appstetix.appstract.seamless.core.api.SeamlessRequest;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.eventbus.MessageCodec;
 

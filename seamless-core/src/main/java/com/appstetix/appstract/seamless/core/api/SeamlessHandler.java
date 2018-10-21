@@ -1,10 +1,10 @@
-package com.appstetix.appstract.seamless.core.generic;
+package com.appstetix.appstract.seamless.core.api;
 
 import com.appstetix.appstract.seamless.core.annotation.Endpoint;
 import com.appstetix.appstract.seamless.core.annotation.Handler;
 import com.appstetix.appstract.seamless.core.annotation.Task;
-import com.appstetix.appstract.seamless.core.api.SeamlessAPILayer;
 import com.appstetix.appstract.seamless.core.exception.MissingHandlerException;
+import com.appstetix.appstract.seamless.core.generic.AccessType;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.eventbus.EventBus;

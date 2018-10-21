@@ -1,7 +1,5 @@
 package com.appstetix.appstract.seamless.core.api;
 
-import com.appstetix.appstract.seamless.core.generic.SeamlessHandler;
-import com.appstetix.appstract.seamless.core.generic.SeamlessResponse;
 import io.vertx.core.eventbus.Message;
 import org.apache.commons.lang3.StringUtils;
 

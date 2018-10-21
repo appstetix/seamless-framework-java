@@ -1,7 +1,7 @@
 package com.appstetix.appstract.seamless.aws.factory.handler;
 
 import com.appstetix.appstract.seamless.aws.factory.AWSEventHandler;
-import com.appstetix.appstract.seamless.core.generic.SeamlessRequest;
+import com.appstetix.appstract.seamless.core.api.SeamlessRequest;
 
 import java.util.ArrayList;
 import java.util.Map;

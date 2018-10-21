@@ -15,6 +15,7 @@
     <properties>
         <amazon.aws.lambda.core.version>1.1.0</amazon.aws.lambda.core.version>
         <amazon.aws.lambda.logging.version>1.0.0</amazon.aws.lambda.logging.version>
+        <apache.commons.codec.version>1.9</apache.commons.codec.version>
     </properties>
 
     <dependencies>
@@ -35,6 +36,13 @@
             <artifactId>aws-lambda-java-log4j</artifactId>
             <version>${amazon.aws.lambda.logging.version}</version>
         </dependency>
+        <!-- APACHE COMMONS LIBRARIES -->
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+            <version>${apache.commons.codec.version}</version>
+        </dependency>
+
     </dependencies>
 
 </project>

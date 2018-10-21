@@ -1,6 +1,7 @@
-package com.appstetix.appstract.seamless.core.generic;
+package com.appstetix.appstract.seamless.core.api;
 
 import com.appstetix.appstract.seamless.core.exception.IllegalParameterFormatException;
+import com.appstetix.appstract.seamless.core.generic.UserContext;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;

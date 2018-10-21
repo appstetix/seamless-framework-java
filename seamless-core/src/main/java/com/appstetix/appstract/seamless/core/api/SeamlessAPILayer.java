@@ -2,9 +2,10 @@ package com.appstetix.appstract.seamless.core.api;
 
 import com.appstetix.appstract.seamless.core.annotation.API;
 import com.appstetix.appstract.seamless.core.annotation.Handler;
+import com.appstetix.appstract.seamless.core.exception.APIFilterException;
+import com.appstetix.appstract.seamless.core.exception.APIViolationException;
 import com.appstetix.appstract.seamless.core.generic.APIValidator;
 import com.appstetix.appstract.seamless.core.generic.FilterProcessor;
-import com.appstetix.appstract.seamless.core.generic.SeamlessProvider;
 import com.appstetix.appstract.seamless.core.util.AnnotationUtil;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
@@ -28,9 +29,10 @@ public abstract class SeamlessAPILayer<REQ, RESP> implements SeamlessProvider<RE
 
     private static List<String> bypass = new ArrayList();
     protected static DeploymentOptions options;
-    protected static APIValidator validator;
-    protected static FilterProcessor filterProcessor;
     protected static Vertx vertx;
+
+    protected APIValidator validator;
+    protected FilterProcessor filterProcessor;
 
     public static void addToBypass(String path) {
         bypass.add(path);
@@ -41,6 +43,18 @@ public abstract class SeamlessAPILayer<REQ, RESP> implements SeamlessProvider<RE
             deploy();
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    protected void executeValidator(SeamlessRequest request) throws APIViolationException {
+        if(this.validator != null) {
+            validator.validate(request);
+        }
+    }
+
+    protected void executeFilters(SeamlessRequest request, Object rawInput) throws APIFilterException {
+        if (this.filterProcessor != null) {
+            filterProcessor.begin(request, rawInput);
         }
     }
 

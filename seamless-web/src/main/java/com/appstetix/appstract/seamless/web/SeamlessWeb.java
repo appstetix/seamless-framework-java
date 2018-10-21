@@ -1,8 +1,8 @@
 package com.appstetix.appstract.seamless.web;
 
 import com.appstetix.appstract.seamless.core.api.SeamlessAPILayer;
-import com.appstetix.appstract.seamless.core.generic.SeamlessRequest;
-import com.appstetix.appstract.seamless.core.generic.SeamlessResponse;
+import com.appstetix.appstract.seamless.core.api.SeamlessRequest;
+import com.appstetix.appstract.seamless.core.api.SeamlessResponse;
 import com.appstetix.appstract.seamless.core.generic.UserContext;
 import com.appstetix.toolbelt.locksmyth.keycore.exception.InvalidTokenException;
 import io.vertx.core.Handler;

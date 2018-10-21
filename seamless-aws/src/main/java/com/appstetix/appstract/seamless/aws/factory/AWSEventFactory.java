@@ -3,7 +3,7 @@ package com.appstetix.appstract.seamless.aws.factory;
 import com.appstetix.appstract.seamless.aws.factory.handler.ApiEventHandler;
 import com.appstetix.appstract.seamless.aws.factory.handler.IntegrationEventHandler;
 import com.appstetix.appstract.seamless.aws.factory.handler.ScheduledEventHandler;
-import com.appstetix.appstract.seamless.core.generic.SeamlessRequest;
+import com.appstetix.appstract.seamless.core.api.SeamlessRequest;
 
 import java.util.Map;
 
