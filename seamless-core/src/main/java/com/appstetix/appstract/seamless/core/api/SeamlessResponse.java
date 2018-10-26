@@ -24,6 +24,7 @@ public class SeamlessResponse {
     private Map<String, String> headers;
     private Object payload;
     private Throwable error;
+    private String errorClass;
 
     public SeamlessResponse(int code, Map<String, String> headers) {
         this(code, headers, null);
@@ -41,7 +42,13 @@ public class SeamlessResponse {
     }
 
     public SeamlessResponse(Throwable error) {
+        this(error, null);
+    }
+
+    public SeamlessResponse(Throwable error, Object payload) {
         this.error = error;
+        this.errorClass = error.getClass().getName();
+        this.payload = payload;
         this.code = DEFAULT_ERROR_CODE;
     }
 
@@ -53,7 +60,7 @@ public class SeamlessResponse {
         return code >= 300 && code < 600;
     }
 
-    public boolean hasErrorMessage() {
+    public boolean hasError() {
         return this.error != null;
     }
 

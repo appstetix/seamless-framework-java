@@ -1,8 +1,7 @@
-package com.appstetix.appstract.seamless.core.generic;
+package com.appstetix.appstract.seamless.core.validator;
 
-import com.appstetix.appstract.seamless.core.api.SeamlessAPILayer;
+import com.appstetix.appstract.seamless.core.api.SeamlessAPI;
 import com.appstetix.appstract.seamless.core.api.SeamlessRequest;
-import com.appstetix.appstract.seamless.core.exception.APIViolationException;
 
 public class ValidatorProcessor {
 
@@ -12,7 +11,7 @@ public class ValidatorProcessor {
         this.validators = validators;
     }
 
-    public void process(SeamlessRequest request, SeamlessAPILayer apiLayer) throws APIViolationException {
+    public void process(SeamlessRequest request, SeamlessAPI apiLayer) throws Exception {
         if(validators != null && validators.length > 0) {
             for(APIValidator validator : this.validators) {
                 validator.validate(request, apiLayer);

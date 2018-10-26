@@ -1,4 +1,4 @@
-package com.appstetix.appstract.seamless.core.exception;
+package com.appstetix.appstract.seamless.core.exception.custom;
 
 public class IllegalParameterFormatException extends ClassCastException {
 

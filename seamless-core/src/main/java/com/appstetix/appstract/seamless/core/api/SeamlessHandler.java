@@ -3,7 +3,7 @@ package com.appstetix.appstract.seamless.core.api;
 import com.appstetix.appstract.seamless.core.annotation.Endpoint;
 import com.appstetix.appstract.seamless.core.annotation.APIHandler;
 import com.appstetix.appstract.seamless.core.annotation.Task;
-import com.appstetix.appstract.seamless.core.exception.MissingHandlerException;
+import com.appstetix.appstract.seamless.core.exception.custom.MissingHandlerException;
 import com.appstetix.appstract.seamless.core.generic.AccessType;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.eventbus.DeliveryOptions;
@@ -13,9 +13,9 @@ import io.vertx.core.json.Json;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 public abstract class SeamlessHandler extends AbstractVerticle {
@@ -57,11 +57,17 @@ public abstract class SeamlessHandler extends AbstractVerticle {
     private void evaluate() throws MissingHandlerException {
         if(this.getClass().isAnnotationPresent(APIHandler.class)) {
             APIHandler handler = this.getClass().getAnnotation(APIHandler.class);
-            if(AccessType.ALL.equals(handler.access()) || AccessType.WEB_ONLY.equals(handler.access())) {
-                evaluateEndpoints(handler.baseURL());
-            }
-            if(AccessType.ALL.equals(handler.access()) || AccessType.TASK_ONLY.equals(handler.access())) {
-                evaluateTasks();
+            Method[] methods = this.getClass().getDeclaredMethods();
+            if(methods != null && methods.length > 0) {
+                EventBus eb = vertx.eventBus();
+                if(AccessType.ALL.equals(handler.access()) || AccessType.WEB_ONLY.equals(handler.access())) {
+                    evaluateEndpoints(handler.baseURL(), methods, eb);
+                }
+                if(AccessType.ALL.equals(handler.access()) || AccessType.TASK_ONLY.equals(handler.access())) {
+                    evaluateTasks(methods, eb);
+                }
+            } else {
+                log.warn("No methods found for [{}]", this.getClass().getName());
             }
         } else {
             throw new MissingHandlerException(
@@ -70,60 +76,48 @@ public abstract class SeamlessHandler extends AbstractVerticle {
         }
     }
 
-    private void evaluateEndpoints(String baseURL) {
-        Method[] methods = this.getClass().getDeclaredMethods();
-        EventBus eb = vertx.eventBus();
+    private void evaluateEndpoints(String baseURL, Method[] methods, EventBus eb) {
         if(methods != null && methods.length > 0) {
             for(Method method : methods){
-                method.setAccessible(true); // for convenience
+                method.setAccessible(true);
                 if(method.isAnnotationPresent(Endpoint.class)){
                     Endpoint endpoint = method.getDeclaredAnnotation(Endpoint.class);
                     String endpointUrl = getEndpointUrl(baseURL, endpoint);
                     if(!endpoint.secure()) {
-                        SeamlessAPILayer.addToBypass(endpointUrl);
+                        SeamlessAPI.addToBypass(endpointUrl);
                     }
                     eb.consumer(endpointUrl, message -> {
                         try {
                             method.invoke(this, message);
                         } catch (Exception e) {
-                            log.error(getStackTraceString(e));
-                            message.fail(500, e.getMessage());
+                            sendErrorResponse(message, e.getCause());
                         }
                     });
-                    log.info("CREATED ENDPOINT : " + endpointUrl);
+                    log.info("CREATED ENDPOINT : {}", endpointUrl);
                 } else {
-                    log.warn(String.format("No endpoint found for method '%s'", method.getName()));
+                    log.warn("No endpoint found for method '{}'", method.getName());
                 }
             }
-        } else {
-            log.warn("No fields found");
         }
     }
 
-    private void evaluateTasks() {
-        Method[] methods = this.getClass().getDeclaredMethods();
-        EventBus eb = vertx.eventBus();
-        if(methods != null && methods.length > 0) {
-            for(Method method : methods){
-                method.setAccessible(true); // for convenience
-                if(method.isAnnotationPresent(Task.class)){
-                    Task task = method.getDeclaredAnnotation(Task.class);
-                    if(!task.secure()) {
-                        SeamlessAPILayer.addToBypass(task.value());
-                    }
-                    eb.consumer(task.value(), message -> {
-                        try {
-                            method.invoke(this, message);
-                        } catch (Exception e) {
-                            log.error(getStackTraceString(e));
-                            message.fail(500, e.getMessage());
-                        }
-                    });
-                    log.info("CREATED TASK : " + task.value());
+    private void evaluateTasks(Method[] methods, EventBus eb) {
+        for(Method method : methods){
+            method.setAccessible(true);
+            if(method.isAnnotationPresent(Task.class)){
+                Task task = method.getDeclaredAnnotation(Task.class);
+                if(!task.secure()) {
+                    SeamlessAPI.addToBypass(task.value());
                 }
+                eb.consumer(task.value(), message -> {
+                    try {
+                        method.invoke(this, message);
+                    } catch (Exception e) {
+                        sendErrorResponse(message, e);
+                    }
+                });
+                log.info("CREATED TASK : {}", task.value());
             }
-        } else {
-            log.warn("No fields found");
         }
     }
 
@@ -155,10 +149,13 @@ public abstract class SeamlessHandler extends AbstractVerticle {
         return "";
     }
 
-    private static String getStackTraceString(Throwable ex) {
-        StringWriter errors = new StringWriter();
-        ex.printStackTrace(new PrintWriter(errors));
-        return errors.toString();
+    private void sendErrorResponse(Message message, Throwable e) {
+        message.reply(Json.encode(new SeamlessResponse(e)));
     }
 
+    private Map<String, String> getErrorHeaders(Exception ex) {
+        final Map<String, String> headers = new HashMap<>();
+        headers.put("Error", ex.getClass().getName());
+        return headers;
+    }
 }
