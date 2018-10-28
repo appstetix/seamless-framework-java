@@ -64,7 +64,7 @@ public abstract class SeamlessAPIHandler extends SeamlessHandler {
     }
 
     private void successfulResponse(Message message, int httpCode, Object data, Map<String, String> headers) {
-        respond(message, new SeamlessResponse(httpCode, headers, data));
+        respond(message, SeamlessResponse.builder().code(httpCode).headers(headers).payload(data).build());
     }
 
     protected void badRequestResponse(Message message, String error) {

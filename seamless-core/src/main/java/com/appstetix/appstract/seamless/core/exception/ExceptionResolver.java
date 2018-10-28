@@ -58,9 +58,12 @@ public class ExceptionResolver {
     }
 
     private SeamlessResponse composeResponse(ExceptionHandler handler, SeamlessRequest request, Throwable exception) {
-        return new SeamlessResponse(handler.responseCode(request, exception),
-                                        handler.headers(request, exception),
-                                            handler.body(request, exception));
+        final SeamlessResponse response = SeamlessResponse.builder()
+                .code(handler.responseCode(request, exception))
+                .headers(handler.headers(request, exception))
+                .payload(handler.body(request, exception)).build();
+
+        return response;
     }
 
 }

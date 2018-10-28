@@ -55,7 +55,7 @@ public abstract class SeamlessAWS extends SeamlessAPI<Map<String, Object>, ApiGa
             return convertResponse(response);
         } catch (Exception e) {
             e.printStackTrace();
-            return convertResponse(new SeamlessResponse(SERVER_ERROR, e.getMessage()));
+            return convertResponse(SeamlessResponse.builder().error(e).build());
         }
     }
 

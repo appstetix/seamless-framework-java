@@ -140,7 +140,8 @@ public class ValidatorProcessorTest {
 
         @Endpoint(path = "criteria")
         public void successfulValidation(Message message) {
-            message.reply(Json.encode(new SeamlessResponse(200, SUCCESSFULLY_PASSED_VALIDATION)));
+            final SeamlessResponse response = SeamlessResponse.builder().code(200).payload(SUCCESSFULLY_PASSED_VALIDATION).build();
+            message.reply(Json.encode(response));
         }
 
     }
