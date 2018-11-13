@@ -32,10 +32,8 @@ public class ExceptionResolver {
                 } else {
                     log.info("No exception handlers listed explicitly. Scanning project for exception handlers");
                     final Set<String> exceptions = AnnotationUtil.findClassNamesWithAnnotation(APIException.class);
-                    log.info("after scanning for exception handlers");
                     if(exceptions != null && !exceptions.isEmpty()) {
                         for (String exception : exceptions) {
-                            log.info("creating exception handler [{}]", exception);
                             Class<? extends ExceptionHandler> exceptionClass = (Class<? extends ExceptionHandler>) Class.forName(exception);
                             setupException(exceptionClass);
                         }
@@ -76,6 +74,7 @@ public class ExceptionResolver {
     }
 
     private void setupException(Class<? extends ExceptionHandler> exception) throws InstantiationException, IllegalAccessException {
+        log.info("creating exception handler [{}]", exception);
         final APIException customException = exception.getDeclaredAnnotation(APIException.class);
         this.handlers.put(customException.value().getName(), exception.newInstance());
     }
