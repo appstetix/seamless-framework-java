@@ -16,7 +16,6 @@ public class ScheduledEventHandler extends AWSEventHandler {
     @Override
     public SeamlessRequest handler(Map<String, Object> input) throws Exception {
         final SeamlessRequest request = new SeamlessRequest();
-        request.setMethod(HttpMethod.PATCH.toString());
         request.setPath(getPathFromEvent(input));
 
         request.setBody(String.valueOf(input.get("detail")));

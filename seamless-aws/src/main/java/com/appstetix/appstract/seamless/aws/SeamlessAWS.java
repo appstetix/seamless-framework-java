@@ -41,7 +41,7 @@ public abstract class SeamlessAWS extends SeamlessAPI<Map<String, Object>, ApiGa
                     }
                     future.complete(response);
                 } catch (Exception ex) {
-                    future.complete(resolveException(request, ex.getClass().getName(), rs.cause()));
+                    future.complete(resolveException(request, ex.getClass().getName(), ex));
                 }
             });
 
@@ -55,7 +55,8 @@ public abstract class SeamlessAWS extends SeamlessAPI<Map<String, Object>, ApiGa
             return convertResponse(response);
         } catch (Exception e) {
             e.printStackTrace();
-            return convertResponse(SeamlessResponse.builder().error(e).build());
+            final SeamlessResponse response = resolveException(null, e.getClass().getName(), e);
+            return convertResponse(response);
         }
     }
 

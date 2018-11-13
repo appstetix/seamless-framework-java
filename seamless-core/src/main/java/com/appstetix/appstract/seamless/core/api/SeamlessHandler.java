@@ -1,8 +1,6 @@
 package com.appstetix.appstract.seamless.core.api;
 
-import com.appstetix.appstract.seamless.core.annotation.Endpoint;
-import com.appstetix.appstract.seamless.core.annotation.APIHandler;
-import com.appstetix.appstract.seamless.core.annotation.Task;
+import com.appstetix.appstract.seamless.core.annotation.*;
 import com.appstetix.appstract.seamless.core.exception.custom.MalformedMethodException;
 import com.appstetix.appstract.seamless.core.exception.custom.MissingHandlerException;
 import com.appstetix.appstract.seamless.core.generic.AccessType;
@@ -81,17 +79,21 @@ public abstract class SeamlessHandler extends AbstractVerticle {
         if(methods != null && methods.length > 0) {
             for(Method method : methods){
                 method.setAccessible(true);
-                validateMethod(method);
-                if(method.isAnnotationPresent(Endpoint.class)){
-                    Endpoint endpoint = method.getDeclaredAnnotation(Endpoint.class);
-                    String endpointUrl = getEndpointUrl(baseURL, endpoint);
-                    if(!endpoint.secure()) {
-                        SeamlessAPI.addToBypass(endpointUrl);
+                if(method.isAnnotationPresent(Endpoint.class) || method.isAnnotationPresent(Endpoints.class)){
+                    validateMethod(method);
+                    Endpoint[] endpoints = method.getAnnotationsByType(Endpoint.class);
+                    if(endpoints != null) {
+                        for(Endpoint endpoint : endpoints) {
+                            String endpointUrl = getEndpointUrl(baseURL, endpoint);
+                            if(!endpoint.secure()) {
+                                SeamlessAPI.addToBypass(endpointUrl);
+                            }
+                            setupMethod(eb, method, endpointUrl);
+                            log.info("CREATED ENDPOINT : {}", endpointUrl);
+                        }
                     }
-                    setupMethod(eb, method, endpointUrl);
-                    log.info("CREATED ENDPOINT : {}", endpointUrl);
                 } else {
-                    log.warn("No endpoint found for method '{}'", method.getName());
+                    log.debug("No endpoint found for method '{}'", method.getName());
                 }
             }
         }
@@ -100,14 +102,18 @@ public abstract class SeamlessHandler extends AbstractVerticle {
     private void evaluateTasks(Method[] methods, EventBus eb) throws MalformedMethodException {
         for(Method method : methods){
             method.setAccessible(true);
-            validateMethod(method);
-            if(method.isAnnotationPresent(Task.class)){
-                Task task = method.getDeclaredAnnotation(Task.class);
-                if(!task.secure()) {
-                    SeamlessAPI.addToBypass(task.value());
+            if(method.isAnnotationPresent(Task.class) || method.isAnnotationPresent(Tasks.class)){
+                validateMethod(method);
+                Task[] tasks = method.getAnnotationsByType(Task.class);
+                if(tasks != null) {
+                    for(Task task : tasks) {
+                        if(!task.secure()) {
+                            SeamlessAPI.addToBypass(task.value());
+                        }
+                        setupMethod(eb, method, task.value());
+                        log.info("CREATED TASK : {}", task.value());
+                    }
                 }
-                setupMethod(eb, method, task.value());
-                log.info("CREATED TASK : {}", task.value());
             }
         }
     }
@@ -133,7 +139,10 @@ public abstract class SeamlessHandler extends AbstractVerticle {
     }
 
     private String getEndpointUrl(String baseURL, Endpoint endpoint) {
-        if(baseURL != null && !"".equals(baseURL)) {
+        if(endpoint == null) {
+            throw new IllegalArgumentException("parameter [endpoint] cannot be null");
+        }
+        if(StringUtils.isNotEmpty(baseURL)) {
             if(endpoint.version() > 0) {
                 return String.format(BASE_VERSION_URL_PATTERN, endpoint.method(), cleanPath(baseURL), endpoint.version(), cleanPath(endpoint.path()));
             } else {

@@ -2,7 +2,6 @@ package com.appstetix.appstract.seamless.core.annotation;
 
 import com.appstetix.appstract.seamless.core.validator.APIValidator;
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.eventbus.MessageCodec;
 
 import java.lang.annotation.*;
 
@@ -13,9 +12,7 @@ import java.lang.annotation.*;
 public @interface API {
 
     Class<? extends AbstractVerticle>[] handlers() default {};
-    Class<? extends APIValidator> validator() default DEFAULT_VALIDATOR.class;
+    Class<? extends APIValidator>[] validators() default {};
     long requestTimeout() default 0L;
 
-    interface DEFAULT_VALIDATOR extends APIValidator { }
-    interface DEFAULT_MESSAGE_CODEC extends MessageCodec { }
 }

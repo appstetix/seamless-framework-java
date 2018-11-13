@@ -1,29 +1,23 @@
 package com.appstetix.appstract.seamless.core.validator;
 
-import com.appstetix.appstract.seamless.core.annotation.API;
-import com.appstetix.appstract.seamless.core.annotation.APIException;
-import com.appstetix.appstract.seamless.core.annotation.APIHandler;
-import com.appstetix.appstract.seamless.core.annotation.Endpoint;
+import com.appstetix.appstract.seamless.core.annotation.*;
 import com.appstetix.appstract.seamless.core.api.SeamlessAPI;
 import com.appstetix.appstract.seamless.core.api.SeamlessHandler;
 import com.appstetix.appstract.seamless.core.api.SeamlessRequest;
 import com.appstetix.appstract.seamless.core.api.SeamlessResponse;
 import com.appstetix.appstract.seamless.core.exception.generic.ExceptionHandler;
 import com.appstetix.appstract.seamless.core.exception.handler.DefaultExceptionHandler;
-import io.vertx.core.eventbus.Message;
-import io.vertx.core.json.Json;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import static com.appstetix.appstract.seamless.core.validator.ValidatorProcessorTest.TestAPIHandler.SUCCESSFULLY_PASSED_VALIDATION;
+import static com.appstetix.appstract.seamless.core.validator.ValidatorProcessorTest.ValidatorProcessorTestAPIHandler.SUCCESSFULLY_PASSED_VALIDATION;
 import static io.vertx.core.http.HttpMethod.*;
 
 @RunWith(VertxUnitRunner.class)
@@ -86,7 +80,8 @@ public class ValidatorProcessorTest {
         }
     }
 
-    @API(validator = CustomValidator.class)
+    @API(validators = CustomValidator.class)
+    @EnableExceptionHandling
     public static class ValidatorTestAPI extends SeamlessAPI<String, Object> {
 
         public SeamlessResponse test(String path) {
@@ -134,14 +129,13 @@ public class ValidatorProcessorTest {
     }
 
     @APIHandler(baseURL = "valid")
-    public static class TestAPIHandler extends SeamlessHandler {
+    public static class ValidatorProcessorTestAPIHandler extends SeamlessHandler {
 
         public static final String SUCCESSFULLY_PASSED_VALIDATION = "Successfully passed validation";
 
         @Endpoint(path = "criteria")
-        public void successfulValidation(Message message) {
-            final SeamlessResponse response = SeamlessResponse.builder().code(200).payload(SUCCESSFULLY_PASSED_VALIDATION).build();
-            message.reply(Json.encode(response));
+        public String successfulValidation() {
+            return SUCCESSFULLY_PASSED_VALIDATION;
         }
 
     }

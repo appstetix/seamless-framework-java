@@ -1,9 +1,6 @@
 package com.appstetix.appstract.seamless.core.exception;
 
-import com.appstetix.appstract.seamless.core.annotation.API;
-import com.appstetix.appstract.seamless.core.annotation.APIException;
-import com.appstetix.appstract.seamless.core.annotation.APIHandler;
-import com.appstetix.appstract.seamless.core.annotation.Endpoint;
+import com.appstetix.appstract.seamless.core.annotation.*;
 import com.appstetix.appstract.seamless.core.api.SeamlessAPI;
 import com.appstetix.appstract.seamless.core.api.SeamlessHandler;
 import com.appstetix.appstract.seamless.core.api.SeamlessRequest;
@@ -78,6 +75,7 @@ public class ExceptionHandlingTest {
     }
 
     @API(handlers = TestAPIHandler.class)
+    @EnableExceptionHandling
     public static class TestAPI extends SeamlessAPI {
 
         public SeamlessResponse test(String path) {

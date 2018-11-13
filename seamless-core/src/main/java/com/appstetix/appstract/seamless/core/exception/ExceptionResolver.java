@@ -8,11 +8,13 @@ import com.appstetix.appstract.seamless.core.exception.custom.ExceptionResolverE
 import com.appstetix.appstract.seamless.core.exception.generic.ExceptionHandler;
 import com.appstetix.appstract.seamless.core.exception.handler.DefaultExceptionHandler;
 import com.appstetix.appstract.seamless.core.util.AnnotationUtil;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+@Slf4j
 public class ExceptionResolver {
 
     private static ExceptionResolver instance = null;
@@ -21,13 +23,23 @@ public class ExceptionResolver {
 
     private ExceptionResolver(EnableExceptionHandling handlers) throws ExceptionResolverException {
         try {
-            final Set<String> exceptions = AnnotationUtil.findClassNamesWithAnnotation(APIException.class);
-            if(exceptions != null && !exceptions.isEmpty()) {
+            if(handlers != null) {
                 this.handlers = new HashMap();
-                for (String exception : exceptions) {
-                    Class exceptionClass = Class.forName(exception);
-                    final APIException customException = (APIException) exceptionClass.getDeclaredAnnotation(APIException.class);
-                    this.handlers.put(customException.value().getName(), (ExceptionHandler) exceptionClass.newInstance());
+                if(handlers.exceptions().length > 0) {
+                    for(Class<? extends ExceptionHandler> exception : handlers.exceptions()) {
+                        setupException(exception);
+                    }
+                } else {
+                    log.info("No exception handlers listed explicitly. Scanning project for exception handlers");
+                    final Set<String> exceptions = AnnotationUtil.findClassNamesWithAnnotation(APIException.class);
+                    log.info("after scanning for exception handlers");
+                    if(exceptions != null && !exceptions.isEmpty()) {
+                        for (String exception : exceptions) {
+                            log.info("creating exception handler [{}]", exception);
+                            Class<? extends ExceptionHandler> exceptionClass = (Class<? extends ExceptionHandler>) Class.forName(exception);
+                            setupException(exceptionClass);
+                        }
+                    }
                 }
             }
         } catch (Exception e) {
@@ -44,9 +56,6 @@ public class ExceptionResolver {
     }
 
     public SeamlessResponse resolve(SeamlessRequest request, String errorClass, Throwable exception) {
-        if(request == null) {
-            throw new IllegalArgumentException("parameter [request] cannot be null or empty");
-        }
         if(exception == null) {
             throw new IllegalArgumentException("parameter [exception] cannot be null or empty");
         }
@@ -64,6 +73,11 @@ public class ExceptionResolver {
                 .payload(handler.body(request, exception)).build();
 
         return response;
+    }
+
+    private void setupException(Class<? extends ExceptionHandler> exception) throws InstantiationException, IllegalAccessException {
+        final APIException customException = exception.getDeclaredAnnotation(APIException.class);
+        this.handlers.put(customException.value().getName(), exception.newInstance());
     }
 
 }

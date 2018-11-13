@@ -3,10 +3,11 @@ package com.appstetix.appstract.seamless.core.api;
 import com.appstetix.appstract.seamless.core.annotation.API;
 import com.appstetix.appstract.seamless.core.annotation.APIHandler;
 import com.appstetix.appstract.seamless.core.annotation.EnableExceptionHandling;
-import com.appstetix.appstract.seamless.core.exception.custom.ExceptionResolverException;
-import com.appstetix.appstract.seamless.core.validator.APIValidator;
 import com.appstetix.appstract.seamless.core.exception.ExceptionResolver;
+import com.appstetix.appstract.seamless.core.exception.custom.ExceptionResolverException;
 import com.appstetix.appstract.seamless.core.util.AnnotationUtil;
+import com.appstetix.appstract.seamless.core.validator.APIValidator;
+import com.appstetix.appstract.seamless.core.validator.ValidatorProcessor;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Handler;
@@ -33,7 +34,7 @@ public abstract class SeamlessAPI<REQ, RESP> implements SeamlessProvider<REQ, RE
     protected static DeploymentOptions options;
     private static List<String> bypass = new ArrayList();
 
-    private APIValidator validator;
+    private ValidatorProcessor validatorProcessor;
     private ExceptionResolver exceptionResolver;
     private DeliveryOptions deliveryOptions;
 
@@ -58,8 +59,8 @@ public abstract class SeamlessAPI<REQ, RESP> implements SeamlessProvider<REQ, RE
     }
 
     protected void executeValidator(SeamlessRequest request) throws Exception {
-        if(this.validator != null) {
-            validator.validate(request, this);
+        if(this.validatorProcessor != null) {
+            this.validatorProcessor.process(request, this);
         }
     }
 
@@ -112,9 +113,8 @@ public abstract class SeamlessAPI<REQ, RESP> implements SeamlessProvider<REQ, RE
     }
 
     private void setupValidator(API api) throws IllegalAccessException, InstantiationException {
-        if(api != null && !API.DEFAULT_VALIDATOR.class.getName().equals(api.validator().getName())) {
-            log.info(String.format("INSTALLING VALIDATOR: [%s]", api.validator().getSimpleName()));
-            validator = api.validator().newInstance();
+        if(api != null && api.validators().length > 0) {
+            this.validatorProcessor = new ValidatorProcessor(api.validators());
         }
     }
 

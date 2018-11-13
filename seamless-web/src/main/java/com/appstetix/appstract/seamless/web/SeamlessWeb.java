@@ -40,9 +40,15 @@ public class SeamlessWeb extends SeamlessAPI<RoutingContext, HttpServerResponse>
             executeValidator(request);
             process(context, request);
         } catch (Exception e) {
-            e.printStackTrace();
-
-            context.response().setStatusCode(SERVER_ERROR).end("Internal Server Error");
+            SeamlessResponse response = resolveException(null, e.getClass().getName(), e);
+            final HttpServerResponse httpServerResponse = context.response();
+            if(response.hasHeaders()) {
+                response.getHeaders().forEach((s, s2) -> {
+                    httpServerResponse.putHeader(s, s2);
+                });
+            }
+            httpServerResponse.setStatusCode(response.getCode())
+                    .end(Json.encodeToBuffer(response.getPayload()));
         }
     }
 
@@ -83,14 +89,20 @@ public class SeamlessWeb extends SeamlessAPI<RoutingContext, HttpServerResponse>
         log.info("Request made to : {}", request.getRequestPath());
         dispatch(request, rs -> {
             final HttpServerResponse httpServerResponse = context.response();
-            if(rs.failed()) {
-                log.error("Request to = '{}' failed. Cause = {}", context.request().path(), rs.cause().getMessage());
-                httpServerResponse.setStatusCode(SERVER_ERROR).end(rs.cause().getMessage());
-            } else {
-                SeamlessResponse response = getPostBody(rs.result().body().toString(), SeamlessResponse.class);
-                if(response.hasError()) {
-                    response = resolveException(request, response.getErrorClass(), response.getError());
+            SeamlessResponse response = null;
+            try {
+                if(rs.failed()) {
+                    log.error("Request to = '{}' failed. Cause = {}", context.request().path(), rs.cause().getMessage());
+                    httpServerResponse.setStatusCode(SERVER_ERROR).end(rs.cause().getMessage());
+                } else {
+                    response = getPostBody(rs.result().body().toString(), SeamlessResponse.class);
+                    if(response.hasError()) {
+                        response = resolveException(request, response.getErrorClass(), response.getError());
+                    }
                 }
+            } catch (Exception ex) {
+                response = resolveException(request, ex.getClass().getName(), ex);
+            } finally {
                 finalizeResponse(httpServerResponse, response);
             }
         });
