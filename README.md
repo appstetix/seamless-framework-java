@@ -1,14 +1,14 @@
 # Seamless Framework
 
 ## Introduction
-Seamless is a provider agnostic framework allowing you to write once and deploy almost anywhere. The framework does this by abstracting your business logic from the vendor specific interface, allowing you to seamlessly switch vendors/providers without have to rewrite your application specific logic. So whether your applications run on a VM, container or serverlessly, the Seamless Framework can adapt to almost any environment with only minor configuration changes.
+Seamless is a provider agnostic framework, written in java, allowing you to write once and deploy almost anywhere. The framework does this by abstracting your business logic from the vendor specific interface, allowing you to seamlessly switch vendors/providers without having to rewrite your application specific logic. So whether your applications run on a VM, container or serverlessly, the Seamless Framework can adapt to almost any environment with only minor configuration changes.
 
 ## Why Seamless?
 
   - Write once, deploy on-premesis, in the cloud or both
   - Well defined separation of provider and application logic prevents vendor-lockin
   - Easily plugin API validation and filters
-  - Custom error handlers allow you to respond to errors in a predictive manner
+  - Custom error handlers allow you to respond to errors in a predictable manner
   - Built-in URL versioning
   - Easy to use and quick to get started
 
@@ -22,7 +22,7 @@ Seamless uses a number of projects to work properly:
 
 ## Installation
 
-Currently this project hasn't been added to any dependency repository like maven central so the project will have to be cloned and built manually. Before you clone the repo make sure you have Java 8 + maven install on your machine. The steps to build the project are as follows:
+Currently this project hasn't been added to any dependency repository like maven central so the project will have to be cloned and built manually. Before you clone the repo make sure you have Java 8, maven and git install on your machine. The steps to build the project are as follows:
 
 ```sh
 $ git clone https://appstetix@bitbucket.org/appstetixappstract/seamless-framework.git
@@ -44,17 +44,17 @@ For the purposes of this tutorial we will use the web module of the seamless fra
 ```
 
 **Step 3 - Create API handler:**
-API handlers are where your business/application logic will reside. This allows you to keep it consisting regardless of the provider/vendor you choose at the time.
+API handlers are where your business/application logic will reside. This allows you to keep it consistent regardless of the provider/vendor you choose at the time.
 ```java
 import com.appstetix.appstract.seamless.core.api.SeamlessHandler;
 import com.appstetix.appstract.seamless.core.annotation.APIHandler;
 import com.appstetix.appstract.seamless.core.annotation.Endpoint;
 
-@APIHandler()
+@APIHandler
 public class MyHandler extends SeamlessHandler {
-    @Endpoint()
-    public void myEndpoint(Message message) {
-        successful(message, "Hello World");
+    @Endpoint
+    public String myEndpoint() {
+        return "Hello World";
     }
 }
 ```
@@ -63,7 +63,7 @@ Here is a brief explanation of the code above:
 - Extending the **SeamlessHandler** gives you basic functionality to communicate with the framework
 - Annotating your class with **@APIHandler** allows the framework to register your class as an destination for incoming events
 - Annotating your method with **@Endpoint** allows this method to be exposed as a REST resource
-- Using the **successful()** method is a quick and easy way to tell the framework that you have executed the code successfully
+- Returning a result in the method is a quick and easy way to tell the framework that you have a response payload
 
 **Step 4 - Create an API class:**
 
@@ -94,12 +94,76 @@ Once the application is running you can enter the following URL in your web brow
 ## Basic Usage
 Now that you have a running app, we are going to really use some of the features of the framework.
 
+##### The APIHandler
+The APIHandler allows you to keep your code consistent, allowing you to change providers/vendors very rapidly. It does this by separating the business logic from the API that acts as the entry point for your application (explained in more detail later). The proper usage of the handler can be broken down into 3 main parts, namely **parameters**, **return types** and **error handling**.
+
+##### Parameter
+You don't have to pass in any parameters (as shown in the quick start), however should you require access to more detailed request criteria like a POST body, query parameters or headers, you can pass in the **SeamlessRequest** parameter. Please note that this is currently the only option in terms of parameters. Any other parameters will cause an error at startup time, similarly more than 1 parameter passed into a api handler method will yield the same error. Here are a few examples:
+
+```java
+public String myEndpoint() {
+    ...
+}
+```
+
+```java
+public String myEndpoint(SeamlessRequest request) {
+    ...
+}
+```
+You can then query the request to get the desire data. 
+```java
+public String myEndpoint(SeamlessRequest request) {
+    String name = request.getParameterAsString("name");
+    int id = request.getParameterAsInteger("id");
+    return String.format("Your name is %s, and you have an ID of %d", name, id);
+} 
+```
+The above code will work only if you have query parameters **(?name=john&id=55555)**. Note that you can cast the query parameter directly to the type you would like. Should the parameter not be present on the request, null will be returned as a result. 
+
+##### Return types
+As demonstrated in the quick start example you can return any type in your API handler method. This will result in a response with the body of the type you returned (i.e. returning a string will result in string being returned). You can also have a void method as an API handler method signature. This will result in a **200 (OK)** http response being returned. 
+
+The framework will try its best to determine the content type from the return type of your method but if you would like more control you can use the **SeamlessResponse builder** to add the correct headers. In this case the return type/method signature should be a **SeamlessResponse**.
+
+```java
+public SeamlessResponse myEndpoint(SeamlessRequest request) {
+    String name = request.getParameterAsString("name");
+    int id = request.getParameterAsInteger("id");
+    String body = String.format("Your name is %s, and you have an ID of %d", name, id);
+    
+    Map<String, String> headers = new HashMap();
+    headers.put("Content-Type", "text/plain");
+    
+    return SeamlessResponse.builder().code(200).payload(body).headers(headers).build();
+} 
+```
+By default all POJO's will result in a **json** response body and a **Content-Type** of **application/json**.
+
+##### Error Handling
+Error handling is covered more in-depth in a later section. However it's important to note that you can throw exceptions within your API handler and the framework will choose the most appropriate response. Without configuration, the framework will return a **500 (Internal Server Error)** and a **default message** if there aren't any suitable matches. If the exception thrown in the handler has a message as part of it, that will be returned instead of the default message.
+
+```java
+public SeamlessResponse myEndpoint(SeamlessRequest request) {
+    ...
+    throw new Exception();
+}
+```
+The example above will return the default error message and a **500 HTTP response code**.
+```java
+public SeamlessResponse myEndpoint(SeamlessRequest request) {
+    ...
+    throw new Exception("Something went wrong");
+}
+```
+The example above will result in the message **"Something went wrong"** being returned as a response, along with a **500 HTTP response code**.
+
 ##### @APIHandler
 Update your @APIHandler with the following code:
 ```java
 @APIHandler(baseURL="test")
 ```
-The base url allows you to map all http requests with a particular url prefix to this API handler. In this case any URL with the path **/test** will be mapped to this handler. It's a good way to group functionality, especially when they share similar resources like data sources and/or services. 
+The base url allows you to map all http requests with a particular url prefix to this API handler. In this case any URL with the path **/test/*** will be mapped to this handler. It's a good way to group functionality, especially when they share similar resources like data sources. 
 
 A table with the **@APIHandler** features is listed below. 
 
@@ -123,17 +187,37 @@ Here are a full list of features for the **@Endpoint** annotation:
 | method  | false  | Specify the HTTP method for this resource. The default is a **GET** method  |
 | secure  | false  | If true (default) all http requests to this URL will pass through any specified validators at the **@API** level. If there aren't any declared validators, this property is ignored  |
 
-##### SeamlessHandler
+##### @Task
+The **@Task** annotation works just like the **@Endpoint** annotation except it's not accessible via a web endpoint. This kind of workload is usually triggered by another event which can ocur either internally or externally. An example could be a cloud event (a flie uploaded to S3 bucket, a SNS, SQS or Kinesis event) or even a message being consumed from a queue (RabbitMQ, Kafka etc). This is useful for operational workloads that you don't want to be exposed via a web endpoint. However should you wish to make the same method accessible via the web, you can simply annotate it with @Endpoint.
 
-The SeamlessHandler class forms the base from which all API handlers are built. It also provides functionality to make it easier to interact with the rest of the framework. Let's discuss the various components of the SeamlessHandler:
+```java
+@Task("SendWelcomeEmail")
+public void workload(Message message) {
+    ...
+}
+```
+By default tasks are secure meaning that they will go through all the registered validators at an API level. This can be disabled by setting the **secure** property on the **@Task** annotation.
 
-###### Message
-As the name suggests, messages are the glue that links your handler with the API which invoked it. It's VERY important that you respond to messages in every handler otherwise the framework will through a timeout exception. The best way to do so is to use specialized methods in the SeamlessHandler that tell the framework whether your method was successful or not. The **successful()** method allows for several parameters to be passed to is with the message parameter being the only required parameter. 
+```java
+@Task(value = "SendWelcomeEmail", secure = false)
+public void workload(Message message) {
+    ...
+}
+```
 
-Equally if something goes wrong, whether it's a process violation or an unexpected exception, you can use the **failed()** method to let the framework know. This method also allows several parameters to be passed to it with the message parameter being the only one that's required. 
+As mentioned above, you can couple the **@Task** with an **@Endpoint** should you wish to make this method web accessible.
+
+```java
+@Task("SendWelcomeEmail")
+@Endpoint(path = "send/welcome/email", version = 1)
+public void workload(Message message) {
+    ...
+}
+```
+**NOTE: In the example above the "workload" method is secure when invoked by a web url or some other event (task related). You can make them unsecured independently should you so wish.**
 
 ##### @API
-The @API annotation represents the entry point of your application. Depending on whether you want to run your application on a server or as a function, you my need 1 or many API entry points. Typically in a tranditional application, like the one in the Quick Start section, your would have a single entry point (or API). However with serverless functions you my have an entry point (or API) for each of your functions. 
+The @API annotation represents the entry point of your application. Depending on whether you want to run your application on a server or as a function, you my need 1 or many API entry points. Typically in a tranditional application, like the one in the Quick Start section, you would have a single entry point (or API). However with serverless functions you my have an entry point (or API) for each of your functions. 
 
 We will demonstrate the usage of the @API annotation with the following example. Change the class you annotated with @API with the following code:
 
@@ -143,9 +227,9 @@ We will demonstrate the usage of the @API annotation with the following example.
 By doing this you tell this API that it should only route events to the specified handlers (MyHandler in this case). We recommend this approach if you want to deploy your application to a serverless provider (like AWS lambda) for the a few reasons:
 
 1. This method is quicker because it doesn't have to scan the classpath for handlers which can save you money
-2. It also prevents the framework from starting up/setting up handlers that will never be used which will improve your cold-start time
+2. It also prevents the framework from starting up/setting up handlers that will never be accessed/used which will improve your cold-start time.
 
-The default behaviour of the framework is to scan your project for any class annotated with the @APIHandler annotation, which is why the example in the quick start still worked despite us not explicitly specifying the handler. If you plan to deploy your application on server or container, not specifying the handlers will work fine. 
+The default behaviour of the framework is to scan your project for any class annotated with the @APIHandler annotation, which is why the example in the quick start still worked despite us not explicitly specifying the handler. If you plan to deploy your application on a server or container; not specifying the handlers will work fine. 
 
 ##### API Validators
 Most applications require some level of security or validation before the application proceeds with processing any request/event. The Seamless Framework allows you to plugin these validators at the API level, allowing the events to be validated before proceeding to the relevant API handler. The steps to register a validator is detailed below:
@@ -159,7 +243,7 @@ import com.appstetix.appstract.seamless.core.exception.APIViolationException;
 
 public class MyRequestValidator implements APIValidator {
     @Override
-    public void validate(SeamlessRequest request) throws APIViolationException {
+    public void validate(SeamlessRequest request) throws RuntimeException {
         System.out.println("write your validation code here...");
     }
 }
@@ -168,7 +252,7 @@ Here is a brief explanation of the code above:
 
 - Implementing the **APIValidator** will require you to implement the **validate()** method
 - A **SeamlessRequest** object is passed through which contains all the details of the event
-- If there is a violation/exception, you can throw a **APIViolationException** or extension of this class
+- If there is a violation/exception, you can throw any exception (RuntimeException or its subclasses is recommended). This also plugs into the error handling sub-framwork.
 
 ## Todos
 
@@ -185,27 +269,3 @@ MIT
 
 
 **Free Software, Hell Yeah!**
-
-[//]: # (These are reference links used in the body of this note and get stripped out when the markdown processor does its job. There is no need to format nicely because it shouldn't be seen. Thanks SO - http://stackoverflow.com/questions/4823468/store-comments-in-markdown-syntax)
-
-
-   [dill]: <https://github.com/joemccann/dillinger>
-   [git-repo-url]: <https://github.com/joemccann/dillinger.git>
-   [john gruber]: <http://daringfireball.net>
-   [df1]: <http://daringfireball.net/projects/markdown/>
-   [markdown-it]: <https://github.com/markdown-it/markdown-it>
-   [Ace Editor]: <http://ace.ajax.org>
-   [node.js]: <http://nodejs.org>
-   [Twitter Bootstrap]: <http://twitter.github.com/bootstrap/>
-   [jQuery]: <http://jquery.com>
-   [@tjholowaychuk]: <http://twitter.com/tjholowaychuk>
-   [express]: <http://expressjs.com>
-   [AngularJS]: <http://angularjs.org>
-   [Gulp]: <http://gulpjs.com>
-
-   [PlDb]: <https://github.com/joemccann/dillinger/tree/master/plugins/dropbox/README.md>
-   [PlGh]: <https://github.com/joemccann/dillinger/tree/master/plugins/github/README.md>
-   [PlGd]: <https://github.com/joemccann/dillinger/tree/master/plugins/googledrive/README.md>
-   [PlOd]: <https://github.com/joemccann/dillinger/tree/master/plugins/onedrive/README.md>
-   [PlMe]: <https://github.com/joemccann/dillinger/tree/master/plugins/medium/README.md>
-   [PlGa]: <https://github.com/RahulHP/dillinger/blob/master/plugins/googleanalytics/README.md>
