@@ -12,7 +12,7 @@
     <artifactId>seamless-core</artifactId>
 
     <properties>
-        <vertx.version>3.5.3</vertx.version>
+        <vertx.version>3.5.4</vertx.version>
         <appstetix.toolbelt.locksmyth.version>3.0</appstetix.toolbelt.locksmyth.version>
     </properties>
 
@@ -34,6 +34,12 @@
             <groupId>com.appstetix.appstract</groupId>
             <artifactId>seamless-component</artifactId>
             <version>${parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-unit</artifactId>
+            <version>${vertx.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

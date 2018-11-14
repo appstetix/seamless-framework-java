@@ -52,7 +52,6 @@ public class IntegrationEventHandler extends AWSEventHandler {
 
     private SeamlessRequest createSNSRequest(Map<String, Object> event) throws Exception {
         final SeamlessRequest request = new SeamlessRequest();
-        request.setMethod(HttpMethod.PATCH.name());
 
         final Map<String, Object> sns = (Map) event.get(SnsKey.SNS);
         request.setPath(getPathFromSource((String) sns.get(SnsKey.ARN)));
@@ -81,7 +80,6 @@ public class IntegrationEventHandler extends AWSEventHandler {
 
     private SeamlessRequest createKinesisRequest(Map<String, Object> event) throws Exception {
         final SeamlessRequest request = new SeamlessRequest();
-        request.setMethod(HttpMethod.PATCH.name());
         request.setPath(getPathFromSource((String) event.get(KinesisKey.ARN)));
 
         final Map kinesis = (Map) event.get(KinesisKey.KINESIS);

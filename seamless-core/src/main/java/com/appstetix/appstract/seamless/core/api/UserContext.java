@@ -1,4 +1,4 @@
-package com.appstetix.appstract.seamless.core.generic;
+package com.appstetix.appstract.seamless.core.api;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;

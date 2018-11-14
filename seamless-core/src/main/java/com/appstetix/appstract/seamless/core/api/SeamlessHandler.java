@@ -1,9 +1,8 @@
 package com.appstetix.appstract.seamless.core.api;
 
-import com.appstetix.appstract.seamless.core.annotation.Endpoint;
-import com.appstetix.appstract.seamless.core.annotation.APIHandler;
-import com.appstetix.appstract.seamless.core.annotation.Task;
-import com.appstetix.appstract.seamless.core.exception.MissingHandlerException;
+import com.appstetix.appstract.seamless.core.annotation.*;
+import com.appstetix.appstract.seamless.core.exception.custom.MalformedMethodException;
+import com.appstetix.appstract.seamless.core.exception.custom.MissingHandlerException;
 import com.appstetix.appstract.seamless.core.generic.AccessType;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.eventbus.DeliveryOptions;
@@ -13,9 +12,9 @@ import io.vertx.core.json.Json;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 public abstract class SeamlessHandler extends AbstractVerticle {
@@ -54,14 +53,20 @@ public abstract class SeamlessHandler extends AbstractVerticle {
         message.reply(Json.encode(response), options);
     }
 
-    private void evaluate() throws MissingHandlerException {
+    private void evaluate() throws MissingHandlerException, MalformedMethodException {
         if(this.getClass().isAnnotationPresent(APIHandler.class)) {
             APIHandler handler = this.getClass().getAnnotation(APIHandler.class);
-            if(AccessType.ALL.equals(handler.access()) || AccessType.WEB_ONLY.equals(handler.access())) {
-                evaluateEndpoints(handler.baseURL());
-            }
-            if(AccessType.ALL.equals(handler.access()) || AccessType.TASK_ONLY.equals(handler.access())) {
-                evaluateTasks();
+            Method[] methods = this.getClass().getDeclaredMethods();
+            if(methods != null && methods.length > 0) {
+                EventBus eb = vertx.eventBus();
+                if(AccessType.ALL.equals(handler.access()) || AccessType.WEB_ONLY.equals(handler.access())) {
+                    evaluateEndpoints(handler.baseURL(), methods, eb);
+                }
+                if(AccessType.ALL.equals(handler.access()) || AccessType.TASK_ONLY.equals(handler.access())) {
+                    evaluateTasks(methods, eb);
+                }
+            } else {
+                log.warn("No methods found for [{}]", this.getClass().getName());
             }
         } else {
             throw new MissingHandlerException(
@@ -70,65 +75,74 @@ public abstract class SeamlessHandler extends AbstractVerticle {
         }
     }
 
-    private void evaluateEndpoints(String baseURL) {
-        Method[] methods = this.getClass().getDeclaredMethods();
-        EventBus eb = vertx.eventBus();
+    private void evaluateEndpoints(String baseURL, Method[] methods, EventBus eb) throws MalformedMethodException {
         if(methods != null && methods.length > 0) {
             for(Method method : methods){
-                method.setAccessible(true); // for convenience
-                if(method.isAnnotationPresent(Endpoint.class)){
-                    Endpoint endpoint = method.getDeclaredAnnotation(Endpoint.class);
-                    String endpointUrl = getEndpointUrl(baseURL, endpoint);
-                    if(!endpoint.secure()) {
-                        SeamlessAPILayer.addToBypass(endpointUrl);
-                    }
-                    eb.consumer(endpointUrl, message -> {
-                        try {
-                            method.invoke(this, message);
-                        } catch (Exception e) {
-                            log.error(getStackTraceString(e));
-                            message.fail(500, e.getMessage());
+                method.setAccessible(true);
+                if(method.isAnnotationPresent(Endpoint.class) || method.isAnnotationPresent(Endpoints.class)){
+                    validateMethod(method);
+                    Endpoint[] endpoints = method.getAnnotationsByType(Endpoint.class);
+                    if(endpoints != null) {
+                        for(Endpoint endpoint : endpoints) {
+                            String endpointUrl = getEndpointUrl(baseURL, endpoint);
+                            if(!endpoint.secure()) {
+                                SeamlessAPI.addToBypass(endpointUrl);
+                            }
+                            setupMethod(eb, method, endpointUrl);
+                            log.info("CREATED ENDPOINT : {}", endpointUrl);
                         }
-                    });
-                    log.info("CREATED ENDPOINT : " + endpointUrl);
+                    }
                 } else {
-                    log.warn(String.format("No endpoint found for method '%s'", method.getName()));
+                    log.debug("No endpoint found for method '{}'", method.getName());
                 }
             }
-        } else {
-            log.warn("No fields found");
         }
     }
 
-    private void evaluateTasks() {
-        Method[] methods = this.getClass().getDeclaredMethods();
-        EventBus eb = vertx.eventBus();
-        if(methods != null && methods.length > 0) {
-            for(Method method : methods){
-                method.setAccessible(true); // for convenience
-                if(method.isAnnotationPresent(Task.class)){
-                    Task task = method.getDeclaredAnnotation(Task.class);
-                    if(!task.secure()) {
-                        SeamlessAPILayer.addToBypass(task.value());
-                    }
-                    eb.consumer(task.value(), message -> {
-                        try {
-                            method.invoke(this, message);
-                        } catch (Exception e) {
-                            log.error(getStackTraceString(e));
-                            message.fail(500, e.getMessage());
+    private void evaluateTasks(Method[] methods, EventBus eb) throws MalformedMethodException {
+        for(Method method : methods){
+            method.setAccessible(true);
+            if(method.isAnnotationPresent(Task.class) || method.isAnnotationPresent(Tasks.class)){
+                validateMethod(method);
+                Task[] tasks = method.getAnnotationsByType(Task.class);
+                if(tasks != null) {
+                    for(Task task : tasks) {
+                        if(!task.secure()) {
+                            SeamlessAPI.addToBypass(task.value());
                         }
-                    });
-                    log.info("CREATED TASK : " + task.value());
+                        setupMethod(eb, method, task.value());
+                        log.info("CREATED TASK : {}", task.value());
+                    }
                 }
             }
-        } else {
-            log.warn("No fields found");
         }
+    }
+
+    private void setupMethod(EventBus eb, Method method, String address) {
+        eb.consumer(address, message -> {
+            try {
+                Object result = null;
+                if(method.getParameterCount() > 0) {
+                    result = method.invoke(this, message);
+                } else {
+                    result = method.invoke(this);
+                }
+                if(result != null && result instanceof SeamlessResponse) {
+                    respond(message, (SeamlessResponse) result);
+                } else {
+                    respond(message, SeamlessResponse.builder().code(200).payload( result).build());
+                }
+            } catch (Exception e) {
+                sendErrorResponse(message, e.getCause());
+            }
+        });
     }
 
     private String getEndpointUrl(String baseURL, Endpoint endpoint) {
-        if(baseURL != null && !"".equals(baseURL)) {
+        if(endpoint == null) {
+            throw new IllegalArgumentException("parameter [endpoint] cannot be null");
+        }
+        if(StringUtils.isNotEmpty(baseURL)) {
             if(endpoint.version() > 0) {
                 return String.format(BASE_VERSION_URL_PATTERN, endpoint.method(), cleanPath(baseURL), endpoint.version(), cleanPath(endpoint.path()));
             } else {
@@ -155,10 +169,20 @@ public abstract class SeamlessHandler extends AbstractVerticle {
         return "";
     }
 
-    private static String getStackTraceString(Throwable ex) {
-        StringWriter errors = new StringWriter();
-        ex.printStackTrace(new PrintWriter(errors));
-        return errors.toString();
+    private void sendErrorResponse(Message message, Throwable e) {
+        message.reply(Json.encode(SeamlessResponse.builder().error(e).build()));
     }
 
+    private void validateMethod(Method method) throws MalformedMethodException {
+        if(method.getParameterCount() > 1) {
+            throw new MalformedMethodException(String.format("Method '%s' has %d parameters. Expected 1 parameter of type [%s]",
+                    method.getName(), method.getParameterCount(), Message.class.getName()));
+        } else if(method.getParameterCount() == 1) {
+            final Class<?> parameterType = method.getParameterTypes()[0];
+            if(!parameterType.getName().equals(Message.class.getName())) {
+                throw new MalformedMethodException(String.format("Parameter for method '%s' needs to be of type [%s]. Found [%s]",
+                        method.getName(), Message.class.getName(), parameterType.getName()));
+            }
+        }
+    }
 }

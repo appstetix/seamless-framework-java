@@ -8,6 +8,7 @@ import java.lang.annotation.*;
 @Inherited
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
+@Repeatable(Endpoints.class)
 public @interface Endpoint {
 
     String path() default "";

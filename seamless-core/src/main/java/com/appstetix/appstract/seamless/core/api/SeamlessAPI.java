@@ -2,11 +2,12 @@ package com.appstetix.appstract.seamless.core.api;
 
 import com.appstetix.appstract.seamless.core.annotation.API;
 import com.appstetix.appstract.seamless.core.annotation.APIHandler;
-import com.appstetix.appstract.seamless.core.exception.APIFilterException;
-import com.appstetix.appstract.seamless.core.exception.APIViolationException;
-import com.appstetix.appstract.seamless.core.generic.APIValidator;
-import com.appstetix.appstract.seamless.core.generic.FilterProcessor;
+import com.appstetix.appstract.seamless.core.annotation.EnableExceptionHandling;
+import com.appstetix.appstract.seamless.core.exception.ExceptionResolver;
+import com.appstetix.appstract.seamless.core.exception.custom.ExceptionResolverException;
 import com.appstetix.appstract.seamless.core.util.AnnotationUtil;
+import com.appstetix.appstract.seamless.core.validator.APIValidator;
+import com.appstetix.appstract.seamless.core.validator.ValidatorProcessor;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Handler;
@@ -22,31 +23,26 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
-public abstract class SeamlessAPILayer<REQ, RESP> implements SeamlessProvider<REQ, RESP> {
-
-    //VERTX SETTINGS
-    protected static final String VERTX_DISABLE_FILE_CPRESOLVING = "vertx.disableFileCPResolving";
+public abstract class SeamlessAPI<REQ, RESP> implements SeamlessProvider<REQ, RESP> {
 
     static {
-        System.setProperty(VERTX_DISABLE_FILE_CPRESOLVING, "true");
+        System.setProperty("vertx.disableFileCPResolving", "true");
         options = new DeploymentOptions().setWorker(true);
-        vertx = Vertx.vertx();
     }
 
+    public static Vertx vertx = Vertx.vertx();
+    protected static DeploymentOptions options;
     private static List<String> bypass = new ArrayList();
 
-    protected static DeploymentOptions options;
-    protected static Vertx vertx;
-
-    private APIValidator validator;
-    private FilterProcessor filterProcessor;
+    private ValidatorProcessor validatorProcessor;
+    private ExceptionResolver exceptionResolver;
     private DeliveryOptions deliveryOptions;
 
     public static void addToBypass(String path) {
         bypass.add(path);
     }
 
-    public SeamlessAPILayer() {
+    public SeamlessAPI() {
         try {
             deploy();
         } catch (Exception e) {
@@ -54,7 +50,7 @@ public abstract class SeamlessAPILayer<REQ, RESP> implements SeamlessProvider<RE
         }
     }
 
-    public boolean isSecureEndpoint(String path) {
+    public static boolean isSecureEndpoint(String path) {
         return !bypass.contains(path);
     }
 
@@ -62,16 +58,17 @@ public abstract class SeamlessAPILayer<REQ, RESP> implements SeamlessProvider<RE
         return deliveryOptions;
     }
 
-    protected void executeValidator(SeamlessRequest request) throws APIViolationException {
-        if(this.validator != null) {
-            validator.validate(request, this);
+    protected void executeValidator(SeamlessRequest request) throws Exception {
+        if(this.validatorProcessor != null) {
+            this.validatorProcessor.process(request, this);
         }
     }
 
-    protected void executeFilters(SeamlessRequest request, Object rawInput) throws APIFilterException {
-        if (this.filterProcessor != null) {
-            filterProcessor.process(request, rawInput);
+    protected SeamlessResponse resolveException(SeamlessRequest request, String errorClass, Throwable exception) {
+        if(this.exceptionResolver != null) {
+            return this.exceptionResolver.resolve(request, errorClass, exception);
         }
+        return null;
     }
 
     protected void dispatch(SeamlessRequest request, Handler<AsyncResult<Message<Object>>> handler) {
@@ -87,13 +84,13 @@ public abstract class SeamlessAPILayer<REQ, RESP> implements SeamlessProvider<RE
         return null;
     }
 
-    private void deploy() throws InstantiationException, IllegalAccessException {
+    private void deploy() throws Exception {
         API api = this.getClass().getDeclaredAnnotation(API.class);
         if(api != null) {
             int handlersSetup = setupHandlers(api);
+            setupExceptionHandlers();
             if(handlersSetup > 0) {
                 setupValidator(api);
-                setupFilter(api);
                 setupDeliveryOptions(api);
             }
         } else {
@@ -110,23 +107,20 @@ public abstract class SeamlessAPILayer<REQ, RESP> implements SeamlessProvider<RE
             });
             return handlers.size();
         } else {
-            log.error("No API handlers found");
+            log.warn("No API handlers found");
             return 0;
         }
     }
 
     private void setupValidator(API api) throws IllegalAccessException, InstantiationException {
-        if(api != null && !API.DEFAULT_VALIDATOR.class.getName().equals(api.validator().getName())) {
-            log.info(String.format("INSTALLING VALIDATOR: [%s]", api.validator().getSimpleName()));
-            validator = api.validator().newInstance();
+        if(api != null && api.validators().length > 0) {
+            this.validatorProcessor = new ValidatorProcessor(api.validators());
         }
     }
 
-    private void setupFilter(API api) throws InstantiationException, IllegalAccessException {
-        if(api != null && api.filters() != null && !API.DEFAULT_FILTER.class.equals(api.filters()[0])) {
-            log.info(String.format("INSTALLING FILTERS: [%d]", api.filters().length));
-            filterProcessor = new FilterProcessor(api.filters());
-        }
+    private void setupExceptionHandlers() throws ExceptionResolverException {
+        final EnableExceptionHandling enableExceptionHandling = this.getClass().getDeclaredAnnotation(EnableExceptionHandling.class);
+        this.exceptionResolver = ExceptionResolver.getInstance(enableExceptionHandling);
     }
 
     private void setupDeliveryOptions(API api) {
@@ -147,7 +141,7 @@ public abstract class SeamlessAPILayer<REQ, RESP> implements SeamlessProvider<RE
                 log.debug(String.format("FOUND %d HANDLERS", api.handlers().length));
                 return Arrays.stream(api.handlers()).map(Class::getName).collect(Collectors.toSet());
             } else {
-                return AnnotationUtil.findClassesWithAnnotation(APIHandler.class);
+                return AnnotationUtil.findClassNamesWithAnnotation(APIHandler.class);
             }
         }
         return Collections.EMPTY_SET;
