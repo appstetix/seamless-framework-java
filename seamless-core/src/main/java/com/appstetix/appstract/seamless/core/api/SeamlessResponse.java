@@ -95,6 +95,8 @@ public class SeamlessResponse {
                 if (payload instanceof String) {
                     if(((String)payload).startsWith("<")) {
                         this.headers.put(CONTENT_TYPE, TEXT_HTML);
+                    } else {
+                        this.headers.put(CONTENT_TYPE, TEXT_PLAIN);
                     }
                 } else if(payload instanceof byte[]) {
                     this.headers.put(CONTENT_TYPE, APPLICATION_OCTET_STREAM);

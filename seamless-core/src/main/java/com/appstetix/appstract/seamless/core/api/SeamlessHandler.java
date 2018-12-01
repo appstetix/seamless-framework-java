@@ -170,7 +170,8 @@ public abstract class SeamlessHandler extends AbstractVerticle {
     }
 
     private void sendErrorResponse(Message message, Throwable e) {
-        message.reply(Json.encode(SeamlessResponse.builder().error(e).build()));
+        SeamlessResponse response = SeamlessResponse.builder().error(e != null ? e : new Exception()).build();
+        message.reply(Json.encode(response));
     }
 
     private void validateMethod(Method method) throws MalformedMethodException {

@@ -20,7 +20,7 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <lombok.version>1.18.0</lombok.version>
+        <lombok.version>1.18.4</lombok.version>
         <apache.commons.lang3.version>3.5</apache.commons.lang3.version>
         <apache.commons.codec.version>1.11</apache.commons.codec.version>
         <slf4j.version>1.7.25</slf4j.version>
