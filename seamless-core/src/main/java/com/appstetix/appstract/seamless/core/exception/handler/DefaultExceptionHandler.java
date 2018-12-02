@@ -13,6 +13,7 @@ import java.util.Map;
 public class DefaultExceptionHandler implements ExceptionHandler<String> {
 
     public static final String DEFAULT_ERROR_MESSAGE = "Unable to process your request at this time";
+    public static final String NO_RESOURCE_FOUND_ERROR_MESSAGE_PATTERN = "No resource for '%s' was found";
 
     @Override
     public int responseCode(SeamlessRequest request, Throwable exception) {
@@ -27,7 +28,7 @@ public class DefaultExceptionHandler implements ExceptionHandler<String> {
     @Override
     public String body(SeamlessRequest request, Throwable exception) {
         if(isReplyException(exception)) {
-            return String.format("No resource for '%s' was found", request.getPath());
+            return String.format(NO_RESOURCE_FOUND_ERROR_MESSAGE_PATTERN, request.getPath());
         }
         log.error(ExceptionUtil.getStackTraceString(exception));
         if(StringUtils.isNotEmpty(exception.getMessage()) || "null".equalsIgnoreCase(exception.getMessage())) {

@@ -5,6 +5,7 @@ import com.appstetix.appstract.seamless.core.api.SeamlessAPI;
 import com.appstetix.appstract.seamless.core.api.SeamlessHandler;
 import com.appstetix.appstract.seamless.core.api.SeamlessRequest;
 import com.appstetix.appstract.seamless.core.api.SeamlessResponse;
+import com.appstetix.appstract.seamless.core.exception.generic.ExceptionContainer;
 import com.appstetix.appstract.seamless.core.exception.handler.DefaultExceptionHandler;
 import com.appstetix.appstract.seamless.core.exception.generic.ExceptionHandler;
 import io.vertx.core.eventbus.Message;
@@ -59,10 +60,41 @@ public class ExceptionHandlingTest {
     }
 
     @Test
+    public void testNoResourceFoundExceptionHandler(TestContext context) {
+        final Async async = context.async();
+        try {
+            final SeamlessResponse response = api.test("GET:/some/random/path");
+            context.assertNotNull(response);
+            context.assertEquals(404, response.getCode());
+            async.complete();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            context.fail();
+            async.complete();
+        }
+    }
+
+    @Test
     public void testCustomExceptionHandler(TestContext context) {
         final Async async = context.async();
         try {
             final SeamlessResponse response = api.test("GET:/ex/custom");
+            context.assertNotNull(response);
+            context.assertEquals(512, response.getCode());
+            context.assertEquals(TestAPIHandler.EXCEPTION_MESSAGE, response.getPayload());
+            async.complete();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            context.fail();
+            async.complete();
+        }
+    }
+
+    @Test
+    public void testCustomExceptionHandlerWithExplicitlyDeclaredContainer(TestContext context) {
+        final Async async = context.async();
+        try {
+            final SeamlessResponse response = new ExplicitExceptionsAPI().test("GET:/ex/custom");
             context.assertNotNull(response);
             context.assertEquals(512, response.getCode());
             context.assertEquals(TestAPIHandler.EXCEPTION_MESSAGE, response.getPayload());
@@ -118,6 +150,50 @@ public class ExceptionHandlingTest {
         }
     }
 
+    @API(handlers = TestAPIHandler.class)
+    @EnableExceptionHandling( exceptionsClass = CustomExceptionContainer.class )
+    public static class ExplicitExceptionsAPI extends SeamlessAPI {
+
+        public SeamlessResponse test(String path) {
+            try {
+                final CompletableFuture<SeamlessResponse> future = new CompletableFuture<>();
+                SeamlessRequest request = convertRequest(null);
+                vertx.eventBus().send(path, null, result -> {
+                    SeamlessResponse response = null;
+                    try {
+                        if(result.succeeded()) {
+                            response = (SeamlessResponse) getPostBody(result.result().body().toString(), SeamlessResponse.class);
+                            if(response.hasError()) {
+                                response = resolveException(request, response.getErrorClass(), response.getError());
+                            }
+                        } else {
+                            response = resolveException(request, result.cause().getClass().getName(), result.cause());
+                        }
+                    } catch(Exception ex) {
+                        ex.printStackTrace();
+                    } finally {
+                        future.complete(response);
+                    }
+                });
+                SeamlessResponse response = future.get();
+                return response;
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            }
+        }
+
+        @Override
+        public SeamlessRequest convertRequest(Object request) {
+            return new SeamlessRequest();
+        }
+
+        @Override
+        public Object convertResponse(SeamlessResponse response) {
+            return null;
+        }
+    }
+
     @APIHandler(baseURL = "ex")
     public static class TestAPIHandler extends SeamlessHandler {
 
@@ -131,6 +207,16 @@ public class ExceptionHandlingTest {
         @Endpoint(path = "custom")
         public void throwCustomException(Message message) throws Exception {
             throw new CustomException(EXCEPTION_MESSAGE);
+        }
+
+    }
+
+    public static class CustomExceptionContainer implements ExceptionContainer {
+        @Override
+        public Class<? extends ExceptionHandler>[] getHandlerClasses() {
+            return new Class[] {
+                    CustomExceptionHandler.class
+            };
         }
 
     }
