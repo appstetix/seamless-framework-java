@@ -23,8 +23,8 @@ import static io.vertx.core.http.HttpMethod.*;
 @RunWith(VertxUnitRunner.class)
 public class ValidatorProcessorTest {
 
-    public static final String FAIL_DEFAULT_URL = "fail/default/url";
-    public static final String FAIL_CUSTOM_URL = "fail/custom/url";
+    public static final String FAIL_DEFAULT_URL = "GET:/valid/fail/default";
+    public static final String FAIL_CUSTOM_URL = "GET:/valid/fail/custom";
     private static ValidatorTestAPI api;
 
     @BeforeClass
@@ -80,7 +80,7 @@ public class ValidatorProcessorTest {
         }
     }
 
-    @API(validators = CustomValidator.class)
+    @API(handlers = ValidatorProcessorTestAPIHandler.class, validators = CustomValidator.class)
     @EnableExceptionHandling
     public static class ValidatorTestAPI extends SeamlessAPI<String, Object> {
 
@@ -132,10 +132,22 @@ public class ValidatorProcessorTest {
     public static class ValidatorProcessorTestAPIHandler extends SeamlessHandler {
 
         public static final String SUCCESSFULLY_PASSED_VALIDATION = "Successfully passed validation";
+        public static final String SUCCESSFULLY_FAILED_DEFAULT_VALIDATION = "Successfully failed validation with default exception";
+        public static final String SUCCESSFULLY_FAILED_CUSTOM_VALIDATION = "Successfully failed validation with custom exception";
 
         @Endpoint(path = "criteria")
         public String successfulValidation() {
             return SUCCESSFULLY_PASSED_VALIDATION;
+        }
+
+        @Endpoint(path = "fail/default")
+        public String failDefaultValidation() throws Exception {
+            throw new Exception(SUCCESSFULLY_FAILED_DEFAULT_VALIDATION);
+        }
+
+        @Endpoint(path = "fail/custom")
+        public String failCustomValidation() throws ValidatorException {
+            throw new ValidatorException(SUCCESSFULLY_FAILED_CUSTOM_VALIDATION);
         }
 
     }

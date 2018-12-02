@@ -5,29 +5,33 @@ import com.appstetix.appstract.seamless.core.annotation.EnableExceptionHandling;
 import com.appstetix.appstract.seamless.core.api.SeamlessRequest;
 import com.appstetix.appstract.seamless.core.api.SeamlessResponse;
 import com.appstetix.appstract.seamless.core.exception.custom.ExceptionResolverException;
+import com.appstetix.appstract.seamless.core.exception.generic.ExceptionContainer;
 import com.appstetix.appstract.seamless.core.exception.generic.ExceptionHandler;
 import com.appstetix.appstract.seamless.core.exception.handler.DefaultExceptionHandler;
 import com.appstetix.appstract.seamless.core.util.AnnotationUtil;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Slf4j
 public class ExceptionResolver {
 
     private static ExceptionResolver instance = null;
     private Map<String, ExceptionHandler> handlers;
-    private ExceptionHandler defaultHandler = new DefaultExceptionHandler();
+    private ExceptionHandler defaultHandler;
 
     private ExceptionResolver(EnableExceptionHandling handlers) throws ExceptionResolverException {
         try {
             if(handlers != null) {
                 this.handlers = new HashMap();
-                if(handlers.exceptions().length > 0) {
-                    for(Class<? extends ExceptionHandler> exception : handlers.exceptions()) {
-                        setupException(exception);
+                Set<Class<? extends ExceptionHandler>> exceptionHandlers = new LinkedHashSet();
+                if(hasDefaultExceptionsClass(handlers) || handlers.exceptions().length > 0) {
+                    if(hasDefaultExceptionsClass(handlers)) {
+                        final ExceptionContainer exceptionContainer = handlers.exceptionsClass().newInstance();
+                        exceptionHandlers.addAll(Arrays.asList(exceptionContainer.getHandlerClasses()));
+                    }
+                    if(handlers.exceptions().length > 0) {
+                        exceptionHandlers.addAll(Arrays.asList(handlers.exceptions()));
                     }
                 } else {
                     log.info("No exception handlers listed explicitly. Scanning project for exception handlers");
@@ -35,10 +39,16 @@ public class ExceptionResolver {
                     if(exceptions != null && !exceptions.isEmpty()) {
                         for (String exception : exceptions) {
                             Class<? extends ExceptionHandler> exceptionClass = (Class<? extends ExceptionHandler>) Class.forName(exception);
-                            setupException(exceptionClass);
+                            exceptionHandlers.add(exceptionClass);
                         }
                     }
                 }
+                for(Class<? extends ExceptionHandler> exception : exceptionHandlers) {
+                    setupException(exception);
+                }
+                this.defaultHandler = handlers.defaultHandler().newInstance();
+            } else {
+                this.defaultHandler = new DefaultExceptionHandler();
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -77,6 +87,10 @@ public class ExceptionResolver {
         log.info("creating exception handler [{}]", exception);
         final APIException customException = exception.getDeclaredAnnotation(APIException.class);
         this.handlers.put(customException.value().getName(), exception.newInstance());
+    }
+
+    private boolean hasDefaultExceptionsClass(EnableExceptionHandling handlers) {
+        return !handlers.exceptionsClass().getName().equals(EnableExceptionHandling.DefaultExceptionsClass.class.getName());
     }
 
 }
