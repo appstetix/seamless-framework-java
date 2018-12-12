@@ -29,13 +29,6 @@ public abstract class SeamlessHandler extends AbstractVerticle {
         evaluate();
     }
 
-    protected SeamlessRequest getRequest(Message message) {
-        if(message != null) {
-            return Json.decodeValue((String) message.body(), SeamlessRequest.class);
-        }
-        return null;
-    }
-
     protected <T> T getPostBody(String json, Class<T> clss) {
         if (StringUtils.isNotEmpty(json)) {
             if(StringUtils.isNotEmpty(json)) {
@@ -123,7 +116,7 @@ public abstract class SeamlessHandler extends AbstractVerticle {
             try {
                 Object result = null;
                 if(method.getParameterCount() > 0) {
-                    result = method.invoke(this, message);
+                    result = method.invoke(this, getRequest(message));
                 } else {
                     result = method.invoke(this);
                 }
@@ -180,10 +173,17 @@ public abstract class SeamlessHandler extends AbstractVerticle {
                     method.getName(), method.getParameterCount(), Message.class.getName()));
         } else if(method.getParameterCount() == 1) {
             final Class<?> parameterType = method.getParameterTypes()[0];
-            if(!parameterType.getName().equals(Message.class.getName())) {
+            if(!parameterType.getName().equals(SeamlessRequest.class.getName())) {
                 throw new MalformedMethodException(String.format("Parameter for method '%s' needs to be of type [%s]. Found [%s]",
-                        method.getName(), Message.class.getName(), parameterType.getName()));
+                        method.getName(), SeamlessRequest.class.getName(), parameterType.getName()));
             }
         }
+    }
+
+    private SeamlessRequest getRequest(Message message) {
+        if(message != null) {
+            return Json.decodeValue((String) message.body(), SeamlessRequest.class);
+        }
+        return null;
     }
 }
