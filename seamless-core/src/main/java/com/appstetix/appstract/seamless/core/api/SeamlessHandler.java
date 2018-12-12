@@ -29,21 +29,18 @@ public abstract class SeamlessHandler extends AbstractVerticle {
         evaluate();
     }
 
-    protected <T> T getPostBody(String json, Class<T> clss) {
-        if (StringUtils.isNotEmpty(json)) {
-            if(StringUtils.isNotEmpty(json)) {
-                return Json.decodeValue(json, clss);
+    private String cleanPath(String path) {
+        if(path != null && !path.isEmpty()) {
+            String firstChar = path.trim().substring(0, 1);
+            if("/".equals(firstChar)) {
+                path =  path.trim().substring(1, path.length());
             }
+            if(path.lastIndexOf("/") == (path.length() - 1)) {
+                path = path.trim().substring(0, (path.length() - 1));
+            }
+            return path;
         }
-        return null;
-    }
-
-    protected void respond(Message message, SeamlessResponse response) {
-        respond(message, new DeliveryOptions(), response);
-    }
-
-    protected void respond(Message message, DeliveryOptions options, SeamlessResponse response) {
-        message.reply(Json.encode(response), options);
+        return "";
     }
 
     private void evaluate() throws MissingHandlerException, MalformedMethodException {
@@ -111,6 +108,43 @@ public abstract class SeamlessHandler extends AbstractVerticle {
         }
     }
 
+    private String getEndpointUrl(String baseURL, Endpoint endpoint) {
+        if(endpoint == null) {
+            throw new IllegalArgumentException("parameter [endpoint] cannot be null");
+        }
+        if(StringUtils.isNotEmpty(baseURL)) {
+            if(endpoint.version() > 0) {
+                return String.format(BASE_VERSION_URL_PATTERN, endpoint.method(), cleanPath(baseURL), endpoint.version(), cleanPath(endpoint.path()));
+            } else {
+                return String.format(BASE_URL_PATTERN, endpoint.method(), cleanPath(baseURL), cleanPath(endpoint.path()));
+            }
+        } else if(endpoint.version() > 0) {
+            return String.format(VERSION_URL_PATTERN, endpoint.method(), endpoint.version(), cleanPath(endpoint.path()));
+        } else {
+            return String.format(URL_PATTERN, endpoint.method(), cleanPath(endpoint.path()));
+        }
+    }
+
+    private SeamlessRequest getRequest(Message message) {
+        if(message != null) {
+            return Json.decodeValue((String) message.body(), SeamlessRequest.class);
+        }
+        return null;
+    }
+
+    private void respond(Message message, SeamlessResponse response) {
+        respond(message, new DeliveryOptions(), response);
+    }
+
+    private void respond(Message message, DeliveryOptions options, SeamlessResponse response) {
+        message.reply(Json.encode(response), options);
+    }
+
+    private void sendErrorResponse(Message message, Throwable e) {
+        SeamlessResponse response = SeamlessResponse.builder().error(e != null ? e : new Exception()).build();
+        message.reply(Json.encode(response));
+    }
+
     private void setupMethod(EventBus eb, Method method, String address) {
         eb.consumer(address, message -> {
             try {
@@ -131,42 +165,6 @@ public abstract class SeamlessHandler extends AbstractVerticle {
         });
     }
 
-    private String getEndpointUrl(String baseURL, Endpoint endpoint) {
-        if(endpoint == null) {
-            throw new IllegalArgumentException("parameter [endpoint] cannot be null");
-        }
-        if(StringUtils.isNotEmpty(baseURL)) {
-            if(endpoint.version() > 0) {
-                return String.format(BASE_VERSION_URL_PATTERN, endpoint.method(), cleanPath(baseURL), endpoint.version(), cleanPath(endpoint.path()));
-            } else {
-                return String.format(BASE_URL_PATTERN, endpoint.method(), cleanPath(baseURL), cleanPath(endpoint.path()));
-            }
-        } else if(endpoint.version() > 0) {
-            return String.format(VERSION_URL_PATTERN, endpoint.method(), endpoint.version(), cleanPath(endpoint.path()));
-        } else {
-            return String.format(URL_PATTERN, endpoint.method(), cleanPath(endpoint.path()));
-        }
-    }
-
-    private String cleanPath(String path) {
-        if(path != null && !path.isEmpty()) {
-            String firstChar = path.trim().substring(0, 1);
-            if("/".equals(firstChar)) {
-                path =  path.trim().substring(1, path.length());
-            }
-            if(path.lastIndexOf("/") == (path.length() - 1)) {
-                path = path.trim().substring(0, (path.length() - 1));
-            }
-            return path;
-        }
-        return "";
-    }
-
-    private void sendErrorResponse(Message message, Throwable e) {
-        SeamlessResponse response = SeamlessResponse.builder().error(e != null ? e : new Exception()).build();
-        message.reply(Json.encode(response));
-    }
-
     private void validateMethod(Method method) throws MalformedMethodException {
         if(method.getParameterCount() > 1) {
             throw new MalformedMethodException(String.format("Method '%s' has %d parameters. Expected 1 parameter of type [%s]",
@@ -180,10 +178,4 @@ public abstract class SeamlessHandler extends AbstractVerticle {
         }
     }
 
-    private SeamlessRequest getRequest(Message message) {
-        if(message != null) {
-            return Json.decodeValue((String) message.body(), SeamlessRequest.class);
-        }
-        return null;
-    }
 }

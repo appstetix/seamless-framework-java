@@ -200,12 +200,12 @@ public class ExceptionHandlingTest {
         public static final String EXCEPTION_MESSAGE = "Some Custom Exception Message";
 
         @Endpoint(path = "default")
-        public void throwDefaultException(Message message) throws Exception {
+        public void throwDefaultException() throws Exception {
             throw new Exception();
         }
 
         @Endpoint(path = "custom")
-        public void throwCustomException(Message message) throws Exception {
+        public void throwCustomException() throws Exception {
             throw new CustomException(EXCEPTION_MESSAGE);
         }
 
