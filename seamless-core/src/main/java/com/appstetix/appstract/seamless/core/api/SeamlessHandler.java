@@ -29,28 +29,18 @@ public abstract class SeamlessHandler extends AbstractVerticle {
         evaluate();
     }
 
-    protected SeamlessRequest getRequest(Message message) {
-        if(message != null) {
-            return Json.decodeValue((String) message.body(), SeamlessRequest.class);
-        }
-        return null;
-    }
-
-    protected <T> T getPostBody(String json, Class<T> clss) {
-        if (StringUtils.isNotEmpty(json)) {
-            if(StringUtils.isNotEmpty(json)) {
-                return Json.decodeValue(json, clss);
+    private String cleanPath(String path) {
+        if(path != null && !path.isEmpty()) {
+            String firstChar = path.trim().substring(0, 1);
+            if("/".equals(firstChar)) {
+                path =  path.trim().substring(1, path.length());
             }
+            if(path.lastIndexOf("/") == (path.length() - 1)) {
+                path = path.trim().substring(0, (path.length() - 1));
+            }
+            return path;
         }
-        return null;
-    }
-
-    protected void respond(Message message, SeamlessResponse response) {
-        respond(message, new DeliveryOptions(), response);
-    }
-
-    protected void respond(Message message, DeliveryOptions options, SeamlessResponse response) {
-        message.reply(Json.encode(response), options);
+        return "";
     }
 
     private void evaluate() throws MissingHandlerException, MalformedMethodException {
@@ -118,26 +108,6 @@ public abstract class SeamlessHandler extends AbstractVerticle {
         }
     }
 
-    private void setupMethod(EventBus eb, Method method, String address) {
-        eb.consumer(address, message -> {
-            try {
-                Object result = null;
-                if(method.getParameterCount() > 0) {
-                    result = method.invoke(this, message);
-                } else {
-                    result = method.invoke(this);
-                }
-                if(result != null && result instanceof SeamlessResponse) {
-                    respond(message, (SeamlessResponse) result);
-                } else {
-                    respond(message, SeamlessResponse.builder().code(200).payload( result).build());
-                }
-            } catch (Exception e) {
-                sendErrorResponse(message, e.getCause());
-            }
-        });
-    }
-
     private String getEndpointUrl(String baseURL, Endpoint endpoint) {
         if(endpoint == null) {
             throw new IllegalArgumentException("parameter [endpoint] cannot be null");
@@ -155,22 +125,44 @@ public abstract class SeamlessHandler extends AbstractVerticle {
         }
     }
 
-    private String cleanPath(String path) {
-        if(path != null && !path.isEmpty()) {
-            String firstChar = path.trim().substring(0, 1);
-            if("/".equals(firstChar)) {
-                path =  path.trim().substring(1, path.length());
-            }
-            if(path.lastIndexOf("/") == (path.length() - 1)) {
-                path = path.trim().substring(0, (path.length() - 1));
-            }
-            return path;
+    private SeamlessRequest getRequest(Message message) {
+        if(message != null) {
+            return Json.decodeValue((String) message.body(), SeamlessRequest.class);
         }
-        return "";
+        return null;
+    }
+
+    private void respond(Message message, SeamlessResponse response) {
+        respond(message, new DeliveryOptions(), response);
+    }
+
+    private void respond(Message message, DeliveryOptions options, SeamlessResponse response) {
+        message.reply(Json.encode(response), options);
     }
 
     private void sendErrorResponse(Message message, Throwable e) {
-        message.reply(Json.encode(SeamlessResponse.builder().error(e).build()));
+        SeamlessResponse response = SeamlessResponse.builder().error(e != null ? e : new Exception()).build();
+        message.reply(Json.encode(response));
+    }
+
+    private void setupMethod(EventBus eb, Method method, String address) {
+        eb.consumer(address, message -> {
+            try {
+                Object result = null;
+                if(method.getParameterCount() > 0) {
+                    result = method.invoke(this, getRequest(message));
+                } else {
+                    result = method.invoke(this);
+                }
+                if(result != null && result instanceof SeamlessResponse) {
+                    respond(message, (SeamlessResponse) result);
+                } else {
+                    respond(message, SeamlessResponse.builder().code(200).payload( result).build());
+                }
+            } catch (Exception e) {
+                sendErrorResponse(message, e.getCause());
+            }
+        });
     }
 
     private void validateMethod(Method method) throws MalformedMethodException {
@@ -179,10 +171,11 @@ public abstract class SeamlessHandler extends AbstractVerticle {
                     method.getName(), method.getParameterCount(), Message.class.getName()));
         } else if(method.getParameterCount() == 1) {
             final Class<?> parameterType = method.getParameterTypes()[0];
-            if(!parameterType.getName().equals(Message.class.getName())) {
+            if(!parameterType.getName().equals(SeamlessRequest.class.getName())) {
                 throw new MalformedMethodException(String.format("Parameter for method '%s' needs to be of type [%s]. Found [%s]",
-                        method.getName(), Message.class.getName(), parameterType.getName()));
+                        method.getName(), SeamlessRequest.class.getName(), parameterType.getName()));
             }
         }
     }
+
 }

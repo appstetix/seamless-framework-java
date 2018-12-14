@@ -35,6 +35,9 @@ public abstract class SeamlessAWS extends SeamlessAPI<Map<String, Object>, ApiGa
                     SeamlessResponse response;
                     if (rs.succeeded()) {
                         response = getPostBody((String) rs.result().body(), SeamlessResponse.class);
+                        if(response.hasError()) {
+                            response = resolveException(request, response.getErrorClass(), response.getError());
+                        }
                     } else {
                         log.error("Request id = {} failed. Cause = {}", context.getAwsRequestId(), rs.cause().getMessage());
                         response = resolveException(request, rs.cause().getClass().getName(), rs.cause());

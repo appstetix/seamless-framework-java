@@ -3,6 +3,7 @@ package com.appstetix.appstract.seamless.core.api;
 import com.appstetix.appstract.seamless.core.exception.custom.IllegalParameterFormatException;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import io.vertx.core.json.Json;
 import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
 
@@ -27,6 +28,10 @@ public class SeamlessRequest {
             return path.trim();
         }
         return String.format(REQUEST_PATH_PATTERN, method.trim().toUpperCase(), path.trim()).trim();
+    }
+
+    protected <T> T getBodyAs(Class<T> clazz) {
+        return StringUtils.isNotEmpty(body) && StringUtils.isNotEmpty(body) ? Json.decodeValue(body, clazz) : null;
     }
 
     public void addParameter(String key, Object value) {

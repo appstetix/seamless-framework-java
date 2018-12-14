@@ -93,7 +93,7 @@ public class SeamlessWeb extends SeamlessAPI<RoutingContext, HttpServerResponse>
             try {
                 if(rs.failed()) {
                     log.error("Request to = '{}' failed. Cause = {}", context.request().path(), rs.cause().getMessage());
-                    httpServerResponse.setStatusCode(SERVER_ERROR).end(rs.cause().getMessage());
+                    response = resolveException(request, rs.cause().getClass().getName(), rs.cause());
                 } else {
                     response = getPostBody(rs.result().body().toString(), SeamlessResponse.class);
                     if(response.hasError()) {

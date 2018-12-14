@@ -14,6 +14,7 @@
     <properties>
         <vertx.version>3.5.4</vertx.version>
         <appstetix.toolbelt.locksmyth.version>3.0</appstetix.toolbelt.locksmyth.version>
+        <classgraph.version>4.4.12</classgraph.version>
     </properties>
 
     <dependencies>
@@ -27,13 +28,13 @@
         <dependency>
             <groupId>io.github.classgraph</groupId>
             <artifactId>classgraph</artifactId>
-            <version>LATEST</version>
+            <version>${classgraph.version}</version>
         </dependency>
         <!-- SEAMLESS COMPONENT -->
         <dependency>
             <groupId>com.appstetix.appstract</groupId>
             <artifactId>seamless-component</artifactId>
-            <version>${parent.version}</version>
+            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
             <groupId>io.vertx</groupId>

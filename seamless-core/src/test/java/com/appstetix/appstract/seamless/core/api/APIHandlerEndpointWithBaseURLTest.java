@@ -5,6 +5,7 @@ import com.appstetix.appstract.seamless.core.annotation.Endpoint;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.Json;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -54,8 +55,9 @@ public class APIHandlerEndpointWithBaseURLTest {
         String url = getURL("");
         eb.send(url, null, messageAsyncResult -> {
             try {
+                final SeamlessResponse response = getResponse(messageAsyncResult.result());
                 context.assertTrue(messageAsyncResult.succeeded());
-                context.assertEquals(NO_VERSION_AND_NO_PATH, messageAsyncResult.result().body());
+                context.assertEquals(NO_VERSION_AND_NO_PATH, response.getPayload());
             } catch(Exception ex) {
                 context.fail();
             }  finally {
@@ -71,8 +73,9 @@ public class APIHandlerEndpointWithBaseURLTest {
         String url = getURL(NO_VERSION_AND_PATH);
         eb.send(url, null, messageAsyncResult -> {
             try {
+                final SeamlessResponse response = getResponse(messageAsyncResult.result());
                 context.assertTrue(messageAsyncResult.succeeded());
-                context.assertEquals(NO_VERSION_AND_PATH, messageAsyncResult.result().body());
+                context.assertEquals(NO_VERSION_AND_PATH, response.getPayload());
             } catch(Exception ex) {
                 context.fail();
             }  finally {
@@ -88,8 +91,9 @@ public class APIHandlerEndpointWithBaseURLTest {
         String url = getURL(null, 1);
         eb.send(url, null, messageAsyncResult -> {
             try {
+                final SeamlessResponse response = getResponse(messageAsyncResult.result());
                 context.assertTrue(messageAsyncResult.succeeded());
-                context.assertEquals(VERSION_AND_NO_PATH, messageAsyncResult.result().body());
+                context.assertEquals(VERSION_AND_NO_PATH, response.getPayload());
             } catch(Exception ex) {
                 context.fail();
             }  finally {
@@ -105,8 +109,9 @@ public class APIHandlerEndpointWithBaseURLTest {
         String url = getURL(VERSION_AND_PATH, 1);
         eb.send(url, null, messageAsyncResult -> {
             try {
+                final SeamlessResponse response = getResponse(messageAsyncResult.result());
                 context.assertTrue(messageAsyncResult.succeeded());
-                context.assertEquals(VERSION_AND_PATH, messageAsyncResult.result().body());
+                context.assertEquals(VERSION_AND_PATH, response.getPayload());
             } catch(Exception ex) {
                 context.fail();
             }  finally {
@@ -156,24 +161,28 @@ public class APIHandlerEndpointWithBaseURLTest {
     public static class TestEndpointHandlerWithBaseURL extends SeamlessHandler {
 
         @Endpoint()
-        public void noVersionAndNoPath(Message message) {
-            message.reply(NO_VERSION_AND_NO_PATH);
+        public String noVersionAndNoPath() {
+            return NO_VERSION_AND_NO_PATH;
         }
 
         @Endpoint(path = NO_VERSION_AND_PATH)
-        public void noVersionAndPath(Message message) {
-            message.reply(NO_VERSION_AND_PATH);
+        public String noVersionAndPath() {
+            return NO_VERSION_AND_PATH;
         }
 
         @Endpoint(version = 1)
-        public void versionAndNoPath(Message message) {
-            message.reply(VERSION_AND_NO_PATH);
+        public String versionAndNoPath() {
+            return VERSION_AND_NO_PATH;
         }
 
         @Endpoint(path = VERSION_AND_PATH, version = 1)
-        public void versionAndPath(Message message) {
-            message.reply(VERSION_AND_PATH);
+        public String versionAndPath() {
+            return VERSION_AND_PATH;
         }
 
+    }
+
+    private SeamlessResponse getResponse(Message message) {
+        return Json.decodeValue(message.body().toString(), SeamlessResponse.class);
     }
 }
