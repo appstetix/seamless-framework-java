@@ -30,7 +30,7 @@ public class SeamlessRequest {
         return String.format(REQUEST_PATH_PATTERN, method.trim().toUpperCase(), path.trim()).trim();
     }
 
-    protected <T> T getBodyAs(Class<T> clazz) {
+    public <T> T getBodyAs(Class<T> clazz) {
         return StringUtils.isNotEmpty(body) && StringUtils.isNotEmpty(body) ? Json.decodeValue(body, clazz) : null;
     }
 
