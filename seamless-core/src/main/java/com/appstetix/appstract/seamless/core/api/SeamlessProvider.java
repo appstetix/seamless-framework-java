@@ -1,4 +1,4 @@
-package com.appstetix.appstract.seamless.core.generic;
+package com.appstetix.appstract.seamless.core.api;
 
 public interface SeamlessProvider<REQ, RESP> {
 

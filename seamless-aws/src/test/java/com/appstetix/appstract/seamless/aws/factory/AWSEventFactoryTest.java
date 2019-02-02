@@ -1,6 +1,6 @@
 package com.appstetix.appstract.seamless.aws.factory;
 
-import com.appstetix.appstract.seamless.core.generic.SeamlessRequest;
+import com.appstetix.appstract.seamless.core.api.SeamlessRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Assert;
 import org.junit.Test;
@@ -64,9 +64,7 @@ public class AWSEventFactoryTest {
             Assert.assertNotNull(request);
             Assert.assertNotNull(request.getPath());
             Assert.assertEquals(request.getPath(), "OnTestTopic");
-            Assert.assertNotNull(request.getMethod());
-            Assert.assertEquals(request.getMethod(), "PATCH");
-            Assert.assertEquals(request.getRequestPath(), "PATCH:OnTestTopic");
+            Assert.assertEquals(request.getRequestPath(), "OnTestTopic");
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -85,9 +83,7 @@ public class AWSEventFactoryTest {
             Assert.assertNotNull(request);
             Assert.assertNotNull(request.getPath());
             Assert.assertEquals(request.getPath(), "OnTestStream");
-            Assert.assertNotNull(request.getMethod());
-            Assert.assertEquals(request.getMethod(), "PATCH");
-            Assert.assertEquals(request.getRequestPath(), "PATCH:OnTestStream");
+            Assert.assertEquals(request.getRequestPath(), "OnTestStream");
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -106,9 +102,7 @@ public class AWSEventFactoryTest {
             Assert.assertNotNull(request);
             Assert.assertNotNull(request.getPath());
             Assert.assertEquals(request.getPath(), "rule/my-schedule");
-            Assert.assertNotNull(request.getMethod());
-            Assert.assertEquals(request.getMethod(), "PATCH");
-            Assert.assertEquals(request.getRequestPath(), "PATCH:rule/my-schedule");
+            Assert.assertEquals(request.getRequestPath(), "rule/my-schedule");
 
         } catch (Exception e) {
             e.printStackTrace();

@@ -1,7 +1,7 @@
 package com.appstetix.appstract.seamless.aws.factory.handler;
 
 import com.appstetix.appstract.seamless.aws.factory.AWSEventHandler;
-import com.appstetix.appstract.seamless.core.generic.SeamlessRequest;
+import com.appstetix.appstract.seamless.core.api.SeamlessRequest;
 import io.vertx.core.http.HttpMethod;
 
 import java.util.List;
@@ -16,7 +16,6 @@ public class ScheduledEventHandler extends AWSEventHandler {
     @Override
     public SeamlessRequest handler(Map<String, Object> input) throws Exception {
         final SeamlessRequest request = new SeamlessRequest();
-        request.setMethod(HttpMethod.PATCH.toString());
         request.setPath(getPathFromEvent(input));
 
         request.setBody(String.valueOf(input.get("detail")));

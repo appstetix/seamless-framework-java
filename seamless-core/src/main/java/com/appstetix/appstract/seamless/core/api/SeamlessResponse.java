@@ -1,7 +1,9 @@
-package com.appstetix.appstract.seamless.core.generic;
+package com.appstetix.appstract.seamless.core.api;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -18,28 +20,21 @@ import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.Value.*;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SeamlessResponse {
 
+    public static final int DEFAULT_ERROR_CODE = -1;
+
     private int code;
     private Map<String, String> headers;
     private Object payload;
-    private String errorMessage;
+    private Throwable error;
+    private String errorClass;
 
-    public SeamlessResponse(int code, Map<String, String> headers) {
-        this(code, headers, null);
-    }
-
-    public SeamlessResponse(int code, Object payload) {
-        this(code, null, payload);
-    }
-
-    public SeamlessResponse(int code, Map<String, String> headers, Object payload) {
+    @Builder
+    public SeamlessResponse(int code, Map<String, String> headers, Object payload, Throwable error) {
         this.code = code;
         this.headers = headers;
         this.payload = payload;
+        this.setError(error);
         determineContentType();
-    }
-
-    public SeamlessResponse(String errorMessage) {
-        this.errorMessage = errorMessage;
     }
 
     public boolean isSuccessful() {
@@ -50,12 +45,16 @@ public class SeamlessResponse {
         return code >= 300 && code < 600;
     }
 
-    public boolean hasErrorMessage() {
-        return StringUtils.isNotEmpty(this.errorMessage);
+    public boolean hasError() {
+        return this.error != null;
     }
 
     public boolean hasHeaders() {
         return headers != null && !headers.isEmpty();
+    }
+
+    public boolean hasPayload() {
+        return this.payload != null;
     }
 
     public void setHeaders(Map<String, String> headers) {
@@ -70,17 +69,21 @@ public class SeamlessResponse {
         return null;
     }
 
-    public boolean hasPayload() {
-        return this.payload != null;
-    }
-
     public void setPayload(Object data) {
         this.payload = data;
         determineContentType();
     }
 
+    public void setError(Throwable throwable) {
+        this.error = throwable;
+        if(this.error != null) {
+            this.errorClass = this.error.getClass().getName();
+        }
+    }
+
     public String getContentType() {
-        return getHeader(CONTENT_TYPE);
+        final String header = getHeader(CONTENT_TYPE);
+        return header != null ? header : TEXT_PLAIN;
     }
 
     protected void determineContentType() {
@@ -92,6 +95,8 @@ public class SeamlessResponse {
                 if (payload instanceof String) {
                     if(((String)payload).startsWith("<")) {
                         this.headers.put(CONTENT_TYPE, TEXT_HTML);
+                    } else {
+                        this.headers.put(CONTENT_TYPE, TEXT_PLAIN);
                     }
                 } else if(payload instanceof byte[]) {
                     this.headers.put(CONTENT_TYPE, APPLICATION_OCTET_STREAM);
@@ -102,6 +107,5 @@ public class SeamlessResponse {
                 this.headers.put(CONTENT_TYPE, TEXT_PLAIN);
             }
         }
-
     }
 }

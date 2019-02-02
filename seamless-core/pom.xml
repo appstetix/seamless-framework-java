@@ -3,21 +3,18 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>seamless</artifactId>
         <groupId>com.appstetix.appstract</groupId>
-        <version>1.0</version>
+        <artifactId>seamless-framework</artifactId>
+        <version>2.0</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>seamless-core</artifactId>
-    <version>${parent.version}</version>
 
     <properties>
-        <!--<maven.deploy.skip>true</maven.deploy.skip>-->
-        <!--<jar.skipIfEmpty>true</jar.skipIfEmpty>-->
-        <!--<maven.install.skip>true</maven.install.skip>-->
-        <vertx.version>3.5.3</vertx.version>
+        <vertx.version>3.5.4</vertx.version>
         <appstetix.toolbelt.locksmyth.version>3.0</appstetix.toolbelt.locksmyth.version>
+        <classgraph.version>4.4.12</classgraph.version>
     </properties>
 
     <dependencies>
@@ -27,16 +24,23 @@
             <artifactId>vertx-core</artifactId>
             <version>${vertx.version}</version>
         </dependency>
-        <!-- APPSTETIX LIBRARIES -->
+        <!-- CLASS GRAPH -->
         <dependency>
-            <groupId>com.appstetix.toolbelt</groupId>
-            <artifactId>keymaker</artifactId>
-            <version>${appstetix.toolbelt.locksmyth.version}</version>
+            <groupId>io.github.classgraph</groupId>
+            <artifactId>classgraph</artifactId>
+            <version>${classgraph.version}</version>
+        </dependency>
+        <!-- SEAMLESS COMPONENT -->
+        <dependency>
+            <groupId>com.appstetix.appstract</groupId>
+            <artifactId>seamless-component</artifactId>
+            <version>${project.parent.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.appstetix.toolbelt</groupId>
-            <artifactId>keyverifier</artifactId>
-            <version>${appstetix.toolbelt.locksmyth.version}</version>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-unit</artifactId>
+            <version>${vertx.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

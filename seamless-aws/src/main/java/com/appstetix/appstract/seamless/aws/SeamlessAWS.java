@@ -3,12 +3,9 @@ package com.appstetix.appstract.seamless.aws;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.appstetix.appstract.seamless.aws.factory.AWSEventFactory;
-import com.appstetix.appstract.seamless.core.api.SeamlessAPILayer;
-import com.appstetix.appstract.seamless.core.generic.SeamlessRequest;
-import com.appstetix.appstract.seamless.core.generic.SeamlessResponse;
-import com.appstetix.appstract.seamless.core.generic.UserContext;
-import com.appstetix.toolbelt.locksmyth.keycore.exception.InvalidTokenException;
-import io.vertx.core.json.Json;
+import com.appstetix.appstract.seamless.core.api.SeamlessAPI;
+import com.appstetix.appstract.seamless.core.api.SeamlessRequest;
+import com.appstetix.appstract.seamless.core.api.SeamlessResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.log4j.BasicConfigurator;
@@ -18,11 +15,10 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.ResponseCode.SERVER_ERROR;
-import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.ResponseCode.UNAUTHORIZED_ERROR;
 import static com.appstetix.appstract.seamless.core.generic.HttpHeaders.Value.*;
 
 @Slf4j
-public abstract class SeamlessAWS extends SeamlessAPILayer<Map<String, Object>, ApiGatewayResponse> implements RequestHandler<Map<String, Object>, ApiGatewayResponse> {
+public abstract class SeamlessAWS extends SeamlessAPI<Map<String, Object>, ApiGatewayResponse> implements RequestHandler<Map<String, Object>, ApiGatewayResponse> {
 
     public SeamlessAWS() {
         BasicConfigurator.configure();
@@ -32,45 +28,38 @@ public abstract class SeamlessAWS extends SeamlessAPILayer<Map<String, Object>, 
     public ApiGatewayResponse handleRequest(Map<String, Object> input, Context context) {
         try {
             SeamlessRequest request = convertRequest(input);
-            try {
-                final UserContext userContext = securityCheck(request);
-                request.setUserContext(userContext);
-                final CompletableFuture<SeamlessResponse> future = new CompletableFuture<>();
-                vertx.eventBus().send(request.getRequestPath(), Json.encode(request), rs -> {
-                    try {
-                        SeamlessResponse response;
-                        if (rs.succeeded()) {
-                            response = getPostBody((String) rs.result().body(), SeamlessResponse.class);
-                        } else {
-                            if(rs.cause() != null && rs.cause().getMessage() != null && context != null && context != null) {
-                                log.error("Request id = " + context.getAwsRequestId() + " failed. Cause = " + rs.cause().getMessage());
-                                response = new SeamlessResponse(500, rs.cause().getMessage());
-                            } else {
-                                response = new SeamlessResponse(500, "Unable to process your request at this time");
-                            }
+            executeValidator(request);
+            final CompletableFuture<SeamlessResponse> future = new CompletableFuture<>();
+            dispatch(request, rs -> {
+                try {
+                    SeamlessResponse response;
+                    if (rs.succeeded()) {
+                        response = getPostBody((String) rs.result().body(), SeamlessResponse.class);
+                        if(response.hasError()) {
+                            response = resolveException(request, response.getErrorClass(), response.getError());
                         }
-                        future.complete(response);
-                    } catch (Exception ex) {
-                        ex.printStackTrace();
-                        future.complete(new SeamlessResponse(500, ex.getMessage()));
+                    } else {
+                        log.error("Request id = {} failed. Cause = {}", context.getAwsRequestId(), rs.cause().getMessage());
+                        response = resolveException(request, rs.cause().getClass().getName(), rs.cause());
                     }
-                });
-
-                SeamlessResponse response = future.get();
-                if(response.hasHeaders()) {
-                    response.getHeaders().putAll(getCORSHeaders());
-                } else {
-                    response.setHeaders(getCORSHeaders());
+                    future.complete(response);
+                } catch (Exception ex) {
+                    future.complete(resolveException(request, ex.getClass().getName(), ex));
                 }
+            });
 
-                return convertResponse(response);
-            } catch (InvalidTokenException ex) {
-                ex.printStackTrace();
-                return sendUnauthorizedResponse(ex);
+            SeamlessResponse response = future.get();
+            if(response.hasHeaders()) {
+                response.getHeaders().putAll(getCORSHeaders());
+            } else {
+                response.setHeaders(getCORSHeaders());
             }
+
+            return convertResponse(response);
         } catch (Exception e) {
             e.printStackTrace();
-            return new ApiGatewayResponse(SERVER_ERROR, e.getMessage(), null, false);
+            final SeamlessResponse response = resolveException(null, e.getClass().getName(), e);
+            return convertResponse(response);
         }
     }
 
@@ -109,16 +98,6 @@ public abstract class SeamlessAWS extends SeamlessAPILayer<Map<String, Object>, 
 
             }
         }
-    }
-
-    private ApiGatewayResponse sendUnauthorizedResponse(InvalidTokenException ex) {
-        Map<String, String> headers = new HashMap();
-        headers.put("Content-Type", TEXT_PLAIN);
-        return ApiGatewayResponse.builder()
-                .setHeaders(headers)
-                .setStatusCode(UNAUTHORIZED_ERROR)
-                .setRawBody(ex.getMessage())
-                .build();
     }
 
     private Map<String, String> getCORSHeaders() {
