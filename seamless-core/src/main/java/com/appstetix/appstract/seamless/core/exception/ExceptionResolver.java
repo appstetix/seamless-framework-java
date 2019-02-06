@@ -85,8 +85,13 @@ public class ExceptionResolver {
 
     private void setupException(Class<? extends ExceptionHandler> exception) throws InstantiationException, IllegalAccessException {
         log.info("creating exception handler [{}]", exception);
-        final APIException customException = exception.getDeclaredAnnotation(APIException.class);
-        this.handlers.put(customException.value().getName(), exception.newInstance());
+        final APIException[] customExceptions = exception.getDeclaredAnnotationsByType(APIException.class);
+        if(customExceptions != null) {
+            final ExceptionHandler handler = exception.newInstance();
+            for(APIException apiException : customExceptions) {
+                this.handlers.put(apiException.value().getName(), handler);
+            }
+        }
     }
 
     private boolean hasDefaultExceptionsClass(EnableExceptionHandling handlers) {
