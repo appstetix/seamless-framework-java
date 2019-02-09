@@ -16,6 +16,7 @@ import io.vertx.ext.web.handler.CorsHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -68,7 +69,20 @@ public class SeamlessWeb extends SeamlessAPI<RoutingContext, HttpServerResponse>
 
         Map<String, Object> parameters = new HashMap<>();
         context.request().params().forEach(entry -> {
-            parameters.put(entry.getKey(), entry.getValue());
+            if(parameters.containsKey(entry.getKey())) {
+                final Object vals = parameters.get(entry.getKey());
+                ArrayList values;
+                if(vals.getClass().isArray()) {
+                    values = (ArrayList) vals;
+                } else {
+                    values = new ArrayList();
+                    values.add(vals);
+                }
+                values.add(entry.getValue());
+                parameters.put(entry.getKey(), values);
+            } else {
+                parameters.put(entry.getKey(), entry.getValue());
+            }
         });
 
         serverlessRequest.setHeaders(headers);
