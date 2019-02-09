@@ -2,6 +2,7 @@ package com.appstetix.appstract.seamless.core.exception;
 
 import com.appstetix.appstract.seamless.core.annotation.APIException;
 import com.appstetix.appstract.seamless.core.annotation.EnableExceptionHandling;
+import com.appstetix.appstract.seamless.core.annotation.Exceptions;
 import com.appstetix.appstract.seamless.core.api.SeamlessRequest;
 import com.appstetix.appstract.seamless.core.api.SeamlessResponse;
 import com.appstetix.appstract.seamless.core.exception.custom.ExceptionResolverException;
@@ -35,7 +36,9 @@ public class ExceptionResolver {
                     }
                 } else {
                     log.info("No exception handlers listed explicitly. Scanning project for exception handlers");
-                    final Set<String> exceptions = AnnotationUtil.findClassNamesWithAnnotation(APIException.class);
+                    final Set<String> exceptions = new HashSet();
+                    exceptions.addAll(AnnotationUtil.findClassNamesWithAnnotation(APIException.class));
+                    exceptions.addAll(AnnotationUtil.findClassNamesWithAnnotation(Exceptions.class));
                     if(exceptions != null && !exceptions.isEmpty()) {
                         for (String exception : exceptions) {
                             Class<? extends ExceptionHandler> exceptionClass = (Class<? extends ExceptionHandler>) Class.forName(exception);
@@ -85,8 +88,13 @@ public class ExceptionResolver {
 
     private void setupException(Class<? extends ExceptionHandler> exception) throws InstantiationException, IllegalAccessException {
         log.info("creating exception handler [{}]", exception);
-        final APIException customException = exception.getDeclaredAnnotation(APIException.class);
-        this.handlers.put(customException.value().getName(), exception.newInstance());
+        final APIException[] customExceptions = exception.getDeclaredAnnotationsByType(APIException.class);
+        if(customExceptions != null) {
+            final ExceptionHandler handler = exception.newInstance();
+            for(APIException apiException : customExceptions) {
+                this.handlers.put(apiException.value().getName(), handler);
+            }
+        }
     }
 
     private boolean hasDefaultExceptionsClass(EnableExceptionHandling handlers) {

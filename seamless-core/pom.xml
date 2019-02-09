@@ -5,14 +5,13 @@
     <parent>
         <groupId>com.appstetix.appstract</groupId>
         <artifactId>seamless-framework</artifactId>
-        <version>2.0</version>
+        <version>2.1</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>seamless-core</artifactId>
 
     <properties>
-        <vertx.version>3.5.4</vertx.version>
         <appstetix.toolbelt.locksmyth.version>3.0</appstetix.toolbelt.locksmyth.version>
         <classgraph.version>4.4.12</classgraph.version>
     </properties>
