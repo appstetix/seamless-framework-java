@@ -6,7 +6,6 @@ import java.lang.annotation.*;
 @Inherited
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-@Repeatable(Exceptions.class)
-public @interface APIException {
-    Class<? extends Throwable> value();
+public @interface Exceptions {
+    APIException[] value();
 }
