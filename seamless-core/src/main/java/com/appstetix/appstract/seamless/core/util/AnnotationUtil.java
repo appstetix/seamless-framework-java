@@ -15,7 +15,7 @@ public class AnnotationUtil {
     public static Set<String> findClassNamesWithAnnotation(Class annotation) {
         try (ScanResult scanResult = new ClassGraph().enableClassInfo().enableAnnotationInfo().scan()) {
             ClassInfoList classList = scanResult.getClassesWithAnnotation(annotation.getName());
-            return classList != null && !classList.isEmpty() ? classList.stream().map(ClassInfo::getName).collect(Collectors.toSet()) : null;
+            return classList != null && !classList.isEmpty() ? classList.stream().map(ClassInfo::getName).collect(Collectors.toSet()) : Collections.emptySet();
         } catch(Exception e) {
             e.printStackTrace();
             return Collections.EMPTY_SET;
