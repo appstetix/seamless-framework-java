@@ -94,7 +94,7 @@ public abstract class SeamlessAPI<REQ, RESP> implements SeamlessProvider<REQ, RE
                 setupDeliveryOptions(api);
             }
         } else {
-            log.warn(String.format("WARNING: No @API annotation found on class [%s]", this.getClass().getName()));
+            log.warn(String.format("WARNING: No @API annotation found on class [%s]. The application may not work as desired", this.getClass().getName()));
         }
     }
 
