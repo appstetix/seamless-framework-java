@@ -6,7 +6,6 @@ import com.appstetix.appstract.seamless.core.annotation.EnableExceptionHandling;
 import com.appstetix.appstract.seamless.core.exception.ExceptionResolver;
 import com.appstetix.appstract.seamless.core.exception.custom.ExceptionResolverException;
 import com.appstetix.appstract.seamless.core.util.AnnotationUtil;
-import com.appstetix.appstract.seamless.core.validator.APIValidator;
 import com.appstetix.appstract.seamless.core.validator.ValidatorProcessor;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.DeploymentOptions;
@@ -32,15 +31,12 @@ public abstract class SeamlessAPI<REQ, RESP> implements SeamlessProvider<REQ, RE
 
     public static Vertx vertx = Vertx.vertx();
     protected static DeploymentOptions options;
-    private static List<String> bypass = new ArrayList();
+    private static Set<String> bypass = new HashSet();
+    private static Set<String> verticles = new HashSet();
 
     private ValidatorProcessor validatorProcessor;
     private ExceptionResolver exceptionResolver;
     private DeliveryOptions deliveryOptions = new DeliveryOptions();
-
-    public static void addToBypass(String path) {
-        bypass.add(path);
-    }
 
     public SeamlessAPI() {
         try {
@@ -50,11 +46,15 @@ public abstract class SeamlessAPI<REQ, RESP> implements SeamlessProvider<REQ, RE
         }
     }
 
+    public static void addToBypass(String path) {
+        bypass.add(path);
+    }
+
     public static boolean isSecureEndpoint(String path) {
         return !bypass.contains(path);
     }
 
-    public DeliveryOptions getDeliveryOptions() {
+    protected DeliveryOptions getDeliveryOptions() {
         return deliveryOptions;
     }
 
@@ -102,12 +102,11 @@ public abstract class SeamlessAPI<REQ, RESP> implements SeamlessProvider<REQ, RE
         Set<String> handlers = getHandlers(api);
         if(handlers.size() > 0) {
             handlers.forEach(handler -> {
-                log.info(String.format("Launching handler [%s]", handler));
-                launch(handler, options);
+                launch(handler);
             });
             return handlers.size();
         } else {
-            log.warn("No API handlers found");
+            log.warn("No API verticles found");
             return 0;
         }
     }
@@ -147,11 +146,18 @@ public abstract class SeamlessAPI<REQ, RESP> implements SeamlessProvider<REQ, RE
     }
 
     private static void launch(String verticle) {
-        launch(verticle, options);
-    }
-
-    private static void launch(String verticle, DeploymentOptions options) {
-        vertx.deployVerticle(verticle, options);
+        if(!verticles.contains(verticle)) {
+            verticles.add(verticle);
+            vertx.deployVerticle(verticle, options, result -> {
+                if(result.succeeded()) {
+                    log.info(String.format("Launched handler [%s]", verticle));
+                } else {
+                    vertx.undeploy(verticle, asyncResult -> {
+                        verticles.remove(verticle);
+                    });
+                }
+            });
+        }
     }
 
     private static MessageCodec getMessageCodec() {
