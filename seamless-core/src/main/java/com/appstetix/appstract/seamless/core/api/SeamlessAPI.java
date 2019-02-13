@@ -36,7 +36,7 @@ public abstract class SeamlessAPI<REQ, RESP> implements SeamlessProvider<REQ, RE
 
     private ValidatorProcessor validatorProcessor;
     private ExceptionResolver exceptionResolver;
-    private DeliveryOptions deliveryOptions = new DeliveryOptions();
+    private DeliveryOptions deliveryOptions;
 
     public SeamlessAPI() {
         try {
@@ -123,6 +123,7 @@ public abstract class SeamlessAPI<REQ, RESP> implements SeamlessProvider<REQ, RE
     }
 
     private void setupDeliveryOptions(API api) {
+        this.deliveryOptions = new DeliveryOptions();
         if(api.requestTimeout() > 0) {
             this.deliveryOptions.setSendTimeout(api.requestTimeout());
         }
@@ -158,10 +159,6 @@ public abstract class SeamlessAPI<REQ, RESP> implements SeamlessProvider<REQ, RE
                 }
             });
         }
-    }
-
-    private static MessageCodec getMessageCodec() {
-        return null;
     }
 
 }
