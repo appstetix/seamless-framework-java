@@ -36,7 +36,7 @@ public abstract class SeamlessAPI<REQ, RESP> implements SeamlessProvider<REQ, RE
 
     private ValidatorProcessor validatorProcessor;
     private ExceptionResolver exceptionResolver;
-    private DeliveryOptions deliveryOptions;
+    private DeliveryOptions deliveryOptions = new DeliveryOptions();
 
     public static void addToBypass(String path) {
         bypass.add(path);
@@ -124,7 +124,6 @@ public abstract class SeamlessAPI<REQ, RESP> implements SeamlessProvider<REQ, RE
     }
 
     private void setupDeliveryOptions(API api) {
-        this.deliveryOptions = new DeliveryOptions();
         if(api.requestTimeout() > 0) {
             this.deliveryOptions.setSendTimeout(api.requestTimeout());
         }
