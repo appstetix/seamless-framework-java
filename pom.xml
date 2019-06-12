@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.appstetix.appstract</groupId>
-    <artifactId>seamless-framework</artifactId>
+    <artifactId>seamless-framework-java</artifactId>
     <packaging>pom</packaging>
     <version>2.1</version>
 

@@ -25,8 +25,8 @@ Seamless uses a number of projects to work properly:
 Currently this project hasn't been added to any dependency repository like maven central so the project will have to be cloned and built manually. Before you clone the repo make sure you have Java 8, maven and git install on your machine. The steps to build the project are as follows:
 
 ```sh
-$ git clone https://appstetix@bitbucket.org/appstetixappstract/seamless-framework.git
-$ cd seamless-framework
+$ git clone https://github.com/appstetix/seamless-framework-java.git
+$ cd seamless-framework-java
 $ mvn clean install
 ```
 
